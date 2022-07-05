@@ -1,9 +1,10 @@
 
 const express = require('express');
 const app = express();
-const cors = require('cors');
+const cors = require('cors'); 
 
 const bodyParser = require('body-parser');
+const { EarleyScott } = require('./earley-scott');
 app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 app.use(bodyParser.json({ limit: '5mb' }));
 app.use(cors());
@@ -32,6 +33,30 @@ app.post('/api/v1/testpost', (req, res) => {
     
 });
 
+app.post('/api/v1/createParser', (req, res) => {
+    let respArray = [];
+    try{
+        alphabet = req.body.alphabet;
+        tokenString = req.body.tokenString;
+        grammar = req.body.grammar;
+
+        console.log(`Got alphabet ${req.body.alphabet}, tokenstring  ${req.body.tokenString} and grammar ${req.body.grammar}`);
+
+        let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
+        earleyScott.parse();
+
+
+        respArray.push({ result: 'Correct'});
+        return res.status(200).json(respArray);
+    }
+    catch(error)
+    {
+        console.log(error);
+        respArray.push({ result: 'Error', error: 'Internal server error'});
+        return res.status(500).json(respArray);
+    }
+});
+   
 app.listen(port, () => {
     console.log(`EarleyScottVisualizer server listening on port ${port}`)
-})
+});

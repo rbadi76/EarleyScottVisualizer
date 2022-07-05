@@ -10,6 +10,16 @@
             "name": "Launch Chrome agains localhost",
             "url": "http://localhost:3500",
             "webRoot": "${workspaceFolder}/client"
+        }, 
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "ESV Server",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/server/app.js"
+            
         }
     ]
 }
