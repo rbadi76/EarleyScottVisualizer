@@ -25,7 +25,7 @@ class EarleyScott
             this.nonTerminals.add(production.lhs);
             this.terminalsAndNonTerminals.add(production.lhs);
 
-            let rhs_components = production.getRhs().split(" ");
+            let rhs_components = production.rhs.split(" ");
             rhs_components.forEach(rhs_component => {
                 this._terminalsAndNonTerminals.add(rhs_component);
             });  
@@ -36,9 +36,9 @@ class EarleyScott
         this._terminals = this.difference(this._terminalsAndNonTerminals, this._nonTerminals);
 
         this._E = [];        // Earley sets initialized, an array of arrays of EarleyScottItem-objects: E[0], E[1] ... E[N]
-        this._R = [];        // Queue R initialized
-        this._Qmarked = [];  // Queue Q' initialized
-        this._V = [];        // Queue V initialized       
+        this._R = [];        // Queue R initialized, will be and array of EarleyScottItem-objects
+        this._Qmarked = [];  // Queue Q' initialized, will be and array of EarleyScottItem-objects
+        this._V = [];        // Queue V initialized, will be and array of EarleyScottItem-objects       
     }
 
     parse(){
@@ -75,18 +75,18 @@ class EarleyScott
             
             // Initialize the queues
             this._H = [];
-            this._R = this._E[i].map((x) => x); // Make sure to copy by value, not reference.
-            this._Q = this._Qmarked.map((x) => x); 
+            this._R = this._E[i].map(x => x); // MAP DOES NOT WORK, NEED TO IMPLEMENT CLONE METHOD TO DEEP COPY.
+            this._Q = this._Qmarked.map(x => x); 
             this._Qmarked = [];
 
             while(!this._R.length) // while R is not empty
             {
                 let element = this._R.pop();
-                if(element.cursorIsInFrontOfNonTerminal)
+                if(element.production.cursorIsInFrontOfNonTerminal)
                 {
-                    let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.getNonTerminalInFrontOfCursor());
+                    let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.nonTerminalInFrontOfCursor);
                     productionsStartingWithTheNonTerminal.forEach(production => {
-                        newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.getRhs().join(" "));
+                        newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
                         if(!this._E[i].has(newProductionWithDotAtBeginning))
                         {
                             this._E[i].push(newProductionWithDotAtBeginning);
@@ -110,34 +110,53 @@ class EarleyScott
 
     make_node(production, j, i, w, v, V)
     {
-        if(production.getBetaAfterCursor()[0] == "eps")
+        // Do some type checking before continuing.
+        if(production instanceof Production && typeof(j) == "number" && typeof(i) == "number"
+        && typeof(w) == "number" && v instanceof Node && V instanceof Array)
         {
-            let s = production.lhs;
+            // ... and then continue
+            let s;
+            if(production.betaAfterCursor[0] == "eps")
+            {
+                s = production.lhs;
+            }
+            else
+            {
+                s = production;
+            }
+            
+            let y;
+            if(production.alphaBeforeCursor[0] == "eps" && production.getBetaAfterCursor != "eps")
+            {
+                y = v;
+            }
+            else
+            {
+                let newESI = new EarleyScottItem(s, j, i);
+                let y = V.find(node => node.earleyScottItem.isEqual(newESI));
+                if(y.length === 0)
+                {
+                    y = new Node(newESI);
+                    V.push(y);
+                }
+    
+                let unFam = new UnaryFamily(v);
+                if(w === null && !y.familiesOfChildren.hasFamily(v))
+                {
+                    y.addFamilyOfChildren(unFam);
+                }
+    
+                let binFam = new BinaryFamily(w, v);
+                if(w !== null && !y.familiesOfChildren.hasFamily(binFam))
+                {
+                    y.addFamilyOfChildren(binFam);
+                }
+            }    
+            return y;
         }
         else
         {
-            let s = production;
-        }
-        
-        if(production.getAlphaBeforeCursor()[0] == "eps" && production.getBetaAfterCursor != "eps")
-        {
-            let y = v;
-        }
-        else
-        {
-            let y = V.find(obj => obj.production == s, obj.i == j, obj.w == i);
-            if(y.length === 0)
-            {
-                y = new Node(new EarleyScottItem(s, j, i));
-                V.push(y);
-            }
-
-            if(w === null && y.familiesOfChildren.length === 0)
-            {
-                y.addFamilyOfChildren(v);
-            }
-
-            if(w !== null && )
+            throw new Error("At least one parameter of make_node() is of incorrect type.");
         }
     }
 
@@ -152,16 +171,16 @@ class EarleyScott
 
 class EarleyScottItem
 {
-    constructor(production, i, w)
+    constructor(productionOrNT, i, w)
     {
-        this._production = production;
+        this._productionOrNT = productionOrNT;
         this._i = i;
         this._w = w;
     }
 
-    get production()
+    get productionOrNT()
     {
-        return this._production;
+        return this._productionOrNT;
     }
 
     get i()
@@ -176,13 +195,20 @@ class EarleyScottItem
 
     isEqual(earleyScottItem)
     {
-        if(this._production.isEqual(earleyScottItem.production) 
-            && this._i === earleyScottItem.i
+        if( this._i === earleyScottItem.i
             && this._w === earleyScottItem.w)
         {
-            return true;
+            if(this._productionOrNT instanceof Production && this._productionOrNT.isEqual(earleyScottItem.production))
+            {
+                return true;
+            } 
+            else if(!(this._productionOrNT instanceof Production) && this._productionOrNT == earleyScottItem.lhs)
+            {
+                return true;
+            }
         }
-        else return false;
+        
+        return false;
     }
 }
 
@@ -208,27 +234,28 @@ class Production
     {
         if(this.cursorIsInFrontOfNonTerminal())
         {
-            let ix = this.getRhs().indexOf("·");
-            return this.getRhs()[ix + 1];
+            let ix = this.rhs.indexOf("·");
+            return this.rhs[ix + 1];
         }
     }
 
     get betaAfterCursor()
     {
-        let ix = this.getRhs().indexOf("·");
-        return this.getRhs().slice(ix + 1);
+        let ix = this.rhs.indexOf("·");
+        if(ix < this.rhs.length - 1) return this.rhs.slice(ix + 1)
+        else return ["eps"];
     }
 
     get alphaBeforeCursor()
     {
-        let ix = this.getRhs().indexOf("·");
-        if(ix > 1) return this.getRhs().slice(0, ix - 1)
+        let ix = this.rhs.indexOf("·");
+        if(ix > 1) return this.rhs.slice(0, ix - 1) // [0, 1, 2, 3]
         else return ["eps"];
     }
 
     cursorIsInFrontOfNonTerminal()
     {
-        let rhs_components = this.getRhs();
+        let rhs_components = this.rhs;
         let ix = rhs_components.indexOf("·");
         if(ix == rhs_components.length - 1) return false;
         return this._nonTerminals.has(rhs_components[ix + 1]);
@@ -236,7 +263,7 @@ class Production
 
     cursorIsAtBeginning()
     {
-        let rhs_components = this.getRhs();
+        let rhs_components = this.rhs;
         let ix = rhs_components.indexOf("·");
         if(ix === 0) return true;
         else return false;
@@ -244,7 +271,7 @@ class Production
 
     cursorIsAtEnd()
     {
-        let rhs_components = this.getRhs();
+        let rhs_components = this.rhs;
         let ix = rhs_components.indexOf("·");
         if(is === rhs_components.length -1) return true;
         else return false;
@@ -257,12 +284,14 @@ class Production
     }
 }
 
+
+
 class Node
 {
     constructor(earleyScottItem)
     {
         this._earleyScottItem = earleyScottItem;
-        this._familiesOfChildren = [];
+        this._familiesOfChildren = []; // Must only have objects of type UnaryFamily or BinaryFamily
     }
 
     addFamilyOfChildren(family)
@@ -284,7 +313,8 @@ class Node
         this._familiesOfChildren.forEach(fam => {
             if(family instanceof BinaryFamily 
                 && fam instanceof BinaryFamily
-                && fam.node.earleyScottItem.isEqual(family.node.earleyScottItem))
+                && fam.node.earleyScottItem.isEqual(family.node.earleyScottItem)
+                && fam.node2.earleyScottItem.isEqual(family.node2.earleyScottItem))
             {
                 return true;
             }
