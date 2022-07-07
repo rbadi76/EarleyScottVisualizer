@@ -38,7 +38,7 @@ class EarleyScott
         this._E = [];        // Earley sets initialized, an array of arrays of EarleyScottItem-objects: E[0], E[1] ... E[N]
         this._R = [];        // Queue R initialized, will be and array of EarleyScottItem-objects
         this._Qmarked = [];  // Queue Q' initialized, will be and array of EarleyScottItem-objects
-        this._V = [];        // Queue V initialized, will be and array of EarleyScottItem-objects       
+        this._V = [];        // Queue V initialized, will be and array of Nodes       
     }
 
     parse(){
@@ -75,14 +75,15 @@ class EarleyScott
             
             // Initialize the queues
             this._H = [];
-            this._R = this._E[i].map(x => x); // MAP DOES NOT WORK, NEED TO IMPLEMENT CLONE METHOD TO DEEP COPY.
-            this._Q = this._Qmarked.map(x => x); 
+            this._R = this._E[i].map(x => this.cloneEarleyScottItem(x)); // CLONE HAS BEEN IMPLEMENTED BUT NOT TESTED
+            this._Q = this._Qmarked.map(x => this.cloneEarleyScottItem(x)); 
             this._Qmarked = [];
+            let v; // Initializing but is not used or given a value until later in the loop.
 
             while(!this._R.length) // while R is not empty
             {
                 let element = this._R.pop();
-                if(element.production.cursorIsInFrontOfNonTerminal)
+                if(element.productionOrNT.cursorIsInFrontOfNonTerminal)
                 {
                     let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.nonTerminalInFrontOfCursor);
                     productionsStartingWithTheNonTerminal.forEach(production => {
@@ -98,13 +99,128 @@ class EarleyScott
                         }
 
                     });
-                    if(this._H.has("ADD ELEMENT OF THE CORRECT FORM LATER")) // We need a class or array of two elements with element.getNonTerminalInFrontOfCursor() on the left side.
+                    if(this._H.find(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor,
+                        h_item.node.isEqual(v)))
                     {
+                        element.moveCursorForwardByOne();
+                        let y = this.make_node(element, element.i, i, element.w, v, V);
+                        let newElement = new EarleyScottItem(element.productionOrNT, element.i, y);
+                        if(this._E[i].find(earleyScrottItem => earleyScrottItem.isEqual(newElement)).length)
+                        {
+                            this._E[i].push(newElement);
+                            this._R.push(newElement);
+                        }
+                        if(newElement.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1])
+                        {
+                            this._Q.push(newElement);
+                        }
+                    }
+                }
+                if(element.productionOrNT.cursorIsAtEnd)
+                {
+                    if(element.w == null)
+                    {
+                        let D_earleyScottItem = new EarleyScottItem(new Production(element.lhs, element.rhs), i, i);
+                        let arr = this._V.find(item => item.isEqual(D_earleyScottItem));
+                        if(arr.length === 0)
+                        {
+                            v = arr[0];
+                            this._V.push(v);
+                        }
+                        else
+                        {
+                            v = arr[0];
+                        }
+                        element.w = v;
 
+                        let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node(new EarleyScottItem("eps", null, null)));
+                        if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
+                        {
+                            w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
+                        }
+
+                    }
+                    if(element.i = i)
+                    {
+                        this._H.push(new H_Item(element.productionOrNT.lhs), element.w);
+                    }
+                    for(let j=0; j <= i; j++)
+                    {
+                        this._E[j].forEach(item => {
+                            if(item.productionOrNT.nonTerminalAfterCursor == element.productionOrNT.lhs)
+                            {
+                                item.productionOrNT.moveCursorForwardByOne;
+                                let y = this.make_node(item, item.i, i, item.w, w, this._V);
+                                if(this._E[i].find(innerItem => innerItem.productionOrNT.isEqual(item.productionOrNT) 
+                                    && innerItem.i == item.i && innerItem.w == item.w))
+                                {
+                                    this._E[i].push(item);
+                                    this._R.push(item);   
+                                }
+                                if(item.productionOrNT.betaAfterCursor[0] == this._tokens[i +1])
+                                {
+                                    this._Q.push(item);
+                                }
+                            }
+                        });
                     }
                 }
 
             }
+
+            this._V = [];
+            v = new Node(new EarleyScottItem(this._tokens[i + 1], i, i + 1));
+            
+            while(!this.Q.length)
+            {
+                let element = this._Q.pop();
+                element.productionOrNT.moveCursorForwardByOne();
+                let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
+                // According to Scott there is an if statment here to check if beta is in Sigma N. That
+                // is unnecessary here.
+                let newEarleyScottItem = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs), element.i, y);
+                this._E[i + 1].push(newEarleyScottItem);
+                if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 2])
+                {
+                    this._Qmarked.push(newEarleyScottItem);
+                }
+            }
+        }
+
+        let arrayOfStartProductions = this._E[this._tokens.length].find(item => item.productionOrNT.lhs == "S" && item.productionOrNT.cursorIsAtEnd
+            && item.i === 0, item.w.isEqual(w));
+        if(arrayOfStartProductions.length)
+        {
+            return w;
+        }
+        else
+        {
+            return "FAILURE";
+        }
+    }
+
+    cloneEarleyScottItem(item)
+    {
+        if(item instanceof EarleyScottItem)
+        {
+            let production;
+            let newESI;
+
+            if(item.productionOrNT instanceof Production)
+            {
+                production = new Production(item.productionOrNT.lhs, item.production.rhs);
+                newESI = new EarleyScottItem(production, item.i, item.w);
+                return newESI;
+            }
+            else
+            {
+                newESI = new EarleyScottItem(item.production, item.i, item.w);
+                return newESI;
+            }
+        }
+        else
+        {
+            throw new Error("This method only clones EarleyScottItem objects");
         }
     }
 
@@ -175,7 +291,15 @@ class EarleyScottItem
     {
         this._productionOrNT = productionOrNT;
         this._i = i;
-        this._w = w;
+
+        if(w === null || w instanceof Node)
+        {
+            this._w = w;
+        }
+        else
+        {
+            throw new Error("Parameter w in EarleyScottItem must be an instance of Node or null.");
+        }
     }
 
     get productionOrNT()
@@ -253,6 +377,17 @@ class Production
         else return ["eps"];
     }
 
+    moveCursorForwardByOne()
+    {
+        let arr = this.rhs;
+        let ix = arr.indexOf("·");
+        let dot = arr[ix];
+        let nextItem = arr[ix + 1];
+        arr[ix] = nextItem;
+        arr[ix + 1] = dot;
+        this._rhs = arr.join(" ");
+    }
+
     cursorIsInFrontOfNonTerminal()
     {
         let rhs_components = this.rhs;
@@ -283,8 +418,6 @@ class Production
         else return false;
     }
 }
-
-
 
 class Node
 {
@@ -326,7 +459,13 @@ class Node
             }
         });
         return false;
-    }    
+    }
+    
+    isEqual()
+    {
+        if(this._earleyScottItem.isEqual()) return true;
+        else return false;
+    }
 }
 
 class UnaryFamily
@@ -353,6 +492,25 @@ class BinaryFamily extends UnaryFamily
     get node2()
     {
         return this._node2;
+    }
+}
+
+class H_Item
+{
+    constructor(nonTerminal, node)
+    {
+        this._nonTerminal;
+        this._node;
+    }
+
+    get nonTerminal()
+    {
+        return this._nonTerminal;
+    }
+
+    get node()
+    {
+        return this._node;
     }
 }
 
