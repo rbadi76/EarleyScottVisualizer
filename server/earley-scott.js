@@ -6,7 +6,7 @@ class EarleyScott
         this._grammar = [];
         this._terminalsAndNonTerminals = new Set();          // The set of all terminals and non-terminals, 
                                                             // NOT TO BE CONFUSED with ΣN, which is the set of 
-                                                            // all strings of terminals and non-terminals.
+                                                            // all strings of terminals and non-terminals that begin with an non-terminal.
         this._nonTerminals = new Set();  // The set of all non-terminals
         this._terminals = new Set();     // The set of all terminals
 
@@ -22,11 +22,10 @@ class EarleyScott
         this._startProductions = this._grammar.filter(production => production.lhs == 'S')
 
         this._grammar.forEach(production => {
-            this.nonTerminals.add(production.lhs);
-            this.terminalsAndNonTerminals.add(production.lhs);
+            this._nonTerminals.add(production.lhs);
+            this._terminalsAndNonTerminals.add(production.lhs);
 
-            let rhs_components = production.rhs.split(" ");
-            rhs_components.forEach(rhs_component => {
+            production.rhs.forEach(rhs_component => {
                 this._terminalsAndNonTerminals.add(rhs_component);
             });  
             this._terminalsAndNonTerminals.add("eps"); // In case epsilon is not in the grammar, add it now. Epsilon is denoted with the string "eps".  
@@ -35,7 +34,11 @@ class EarleyScott
 
         this._terminals = this.difference(this._terminalsAndNonTerminals, this._nonTerminals);
 
-        this._E = [];        // Earley sets initialized, an array of arrays of EarleyScottItem-objects: E[0], E[1] ... E[N]
+        // Earley sets initialized, an array of arrays of EarleyScottItem-objects: E[0], E[1] ... E[N]
+        this._E =  [];        
+        this._tokens.forEach(token => { this._E.push([])}); // First we create N number of items
+        this._E.push([]); // ... and then add one.
+
         this._R = [];        // Queue R initialized, will be and array of EarleyScottItem-objects
         this._Qmarked = [];  // Queue Q' initialized, will be and array of EarleyScottItem-objects
         this._V = [];        // Queue V initialized, will be and array of Nodes       
@@ -45,27 +48,18 @@ class EarleyScott
 
         this._startProductions.forEach(startProduction => {
 
-            let rhs_0 = startProduction.rhs.split(" ")[0];
-
             // Create an item that might be used in the next two if-statements.
-            let esItem = new EarleyScottItem(['S', '· ' + startProduction.rhs], 0, null);
+            let esItem = new EarleyScottItem(new Production('S', '· ' + startProduction.rhs.join(" ")), 0, null);
 
-            // According to Scott ΣN is the set of all strings of terminals and non-terminals. Since this set can be infinite and is in the theoretical realm
-            // we simply check if the first token is a non-terminal
-            if(this._nonTerminals.has(rhs_0))
+            // According to Scott ΣN is the set of all strings of terminals and non-terminals that start with a non-terminal. 
+            // Since this set can be infinite and is in the theoretical realm we simply check if the first token is a non-terminal.
+            // // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
+            if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals))
             {
-                if(this._E.length === 0)
-                {
-
-                    this._E.push([esItem]);
-                }
-                else
-                {
-                    this._E[0].push(esItem);
-                }
+                this._E[0].push(esItem);
             }
 
-            if(this._tokens[0] == rhs_0)
+            if(esItem.productionOrNT.cursorIsInFrontOfTerminal(this._terminals) && this._tokens[0] == esItem.productionOrNT.terminalAfterCursor(this._terminals))
             {
                 this._Qmarked.push(esItem);
             }
@@ -80,32 +74,37 @@ class EarleyScott
             this._Qmarked = [];
             let v; // Initializing but is not used or given a value until later in the loop.
 
-            while(!this._R.length) // while R is not empty
+            while(this._R.length) // while R is not empty
             {
                 let element = this._R.pop();
-                if(element.productionOrNT.cursorIsInFrontOfNonTerminal)
+                if(element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals))
                 {
-                    let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.nonTerminalInFrontOfCursor);
+                    let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
                     productionsStartingWithTheNonTerminal.forEach(production => {
-                        newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
-                        if(!this._E[i].has(newProductionWithDotAtBeginning))
+                        let newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
+                        // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
+                        // Checking if delta starts with a non-terminal according to original by Scott.
+                        if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.terminalAfterCursor(this._terminals) == "eps")
+                            && !this._E[i].some(item => item.isEqual(newProductionWithDotAtBeginning)))
                         {
-                            this._E[i].push(newProductionWithDotAtBeginning);
-                            this._R.push(newProductionWithDotAtBeginning);
+                            this._E[i].push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
+                            this._R.push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
                         }
                         if(this._tokens[i + 1] == production.lhs[0])
                         {
-                            this._Q.push(newProductionWithDotAtBeginning);
+                            this._Q.push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
                         }
 
                     });
-                    if(this._H.find(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor,
+                    if(this._H.some(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) && 
                         h_item.node.isEqual(v)))
                     {
                         element.moveCursorForwardByOne();
                         let y = this.make_node(element, element.i, i, element.w, v, V);
-                        let newElement = new EarleyScottItem(element.productionOrNT, element.i, y);
-                        if(this._E[i].find(earleyScrottItem => earleyScrottItem.isEqual(newElement)).length)
+                        let newElement = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
+                        // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
+                        if(element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                            && !this._E[i].some(earleyScrottItem => earleyScrottItem.isEqual(newElement)))
                         {
                             this._E[i].push(newElement);
                             this._R.push(newElement);
@@ -116,15 +115,24 @@ class EarleyScott
                         }
                     }
                 }
-                if(element.productionOrNT.cursorIsAtEnd)
+                if(element.productionOrNT.cursorIsAtEnd())
                 {
                     if(element.w == null)
                     {
-                        let D_earleyScottItem = new EarleyScottItem(new Production(element.lhs, element.rhs), i, i);
-                        let arr = this._V.find(item => item.isEqual(D_earleyScottItem));
+                        let D_node;
+                        if(element.productionOrNT instanceof Production)
+                        {
+                            D_node = new Node(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), i, i);
+                        }
+                        else
+                        {
+                            D_node = new Node(element.productionOrNT, i, i);
+                        }
+                         
+                        let arr = this._V.filter(item => item.isEqual(D_node));
                         if(arr.length === 0)
                         {
-                            v = arr[0];
+                            v = D_node;
                             this._V.push(v);
                         }
                         else
@@ -133,25 +141,30 @@ class EarleyScott
                         }
                         element.w = v;
 
-                        let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node(new EarleyScottItem("eps", null, null)));
+                        // ERROR HERE: I guess this error has to do with deficient cloning. The program tries to run hasFamily
+                        // but the array has one empty element causing the error: TypeError: Cannot read properties of undefined (reading 'isEqual')
+                        let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node("eps", null, null, this._terminals, this._nonTerminals));
                         if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
                         {
-                            w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
+                            element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
                         }
 
                     }
-                    if(element.i = i)
+                    if(element.i == i)
                     {
                         this._H.push(new H_Item(element.productionOrNT.lhs), element.w);
                     }
                     for(let j=0; j <= i; j++)
                     {
                         this._E[j].forEach(item => {
-                            if(item.productionOrNT.nonTerminalAfterCursor == element.productionOrNT.lhs)
+                            if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                                && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
                             {
                                 item.productionOrNT.moveCursorForwardByOne;
-                                let y = this.make_node(item, item.i, i, item.w, w, this._V);
-                                if(this._E[i].find(innerItem => innerItem.productionOrNT.isEqual(item.productionOrNT) 
+                                let y = this.make_node(item.productionOrNT, item.i, i, item.w, element.w, this._V);
+                                // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
+                                if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                                    && this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(item.productionOrNT) 
                                     && innerItem.i == item.i && innerItem.w == item.w))
                                 {
                                     this._E[i].push(item);
@@ -169,17 +182,20 @@ class EarleyScott
             }
 
             this._V = [];
-            v = new Node(new EarleyScottItem(this._tokens[i + 1], i, i + 1));
+            v = new Node(this._tokens[i + 1], i, i + 1, this._terminals, this._nonTerminals);
             
-            while(!this.Q.length)
+            while(this._Q.length)
             {
                 let element = this._Q.pop();
                 element.productionOrNT.moveCursorForwardByOne();
                 let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
-                // According to Scott there is an if statment here to check if beta is in Sigma N. That
-                // is unnecessary here.
-                let newEarleyScottItem = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs), element.i, y);
-                this._E[i + 1].push(newEarleyScottItem);
+                
+                let newEarleyScottItem = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
+                // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
+                if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal)
+                {
+                    this._E[i + 1].push(newEarleyScottItem);
+                }
                 if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 2])
                 {
                     this._Qmarked.push(newEarleyScottItem);
@@ -187,7 +203,7 @@ class EarleyScott
             }
         }
 
-        let arrayOfStartProductions = this._E[this._tokens.length].find(item => item.productionOrNT.lhs == "S" && item.productionOrNT.cursorIsAtEnd
+        let arrayOfStartProductions = this._E[this._tokens.length].filter(item => item.productionOrNT.lhs == "S" && item.productionOrNT.cursorIsAtEnd
             && item.i === 0, item.w.isEqual(w));
         if(arrayOfStartProductions.length)
         {
@@ -208,13 +224,13 @@ class EarleyScott
 
             if(item.productionOrNT instanceof Production)
             {
-                production = new Production(item.productionOrNT.lhs, item.production.rhs);
+                production = new Production(item.productionOrNT.lhs, item.productionOrNT.rhs.join(" "));
                 newESI = new EarleyScottItem(production, item.i, item.w);
                 return newESI;
             }
             else
             {
-                newESI = new EarleyScottItem(item.production, item.i, item.w);
+                newESI = new EarleyScottItem(item.productionOrNT, item.i, item.w);
                 return newESI;
             }
         }
@@ -228,7 +244,7 @@ class EarleyScott
     {
         // Do some type checking before continuing.
         if(production instanceof Production && typeof(j) == "number" && typeof(i) == "number"
-        && typeof(w) == "number" && v instanceof Node && V instanceof Array)
+        && (typeof(w) == "number" || w === null) && v instanceof Node && V instanceof Array)
         {
             // ... and then continue
             let s;
@@ -317,6 +333,18 @@ class EarleyScottItem
         return this._w;
     }
 
+    set w(pointer)
+    {
+        if(pointer === null || pointer instanceof Node)
+        {
+            this._w = pointer;
+        }
+        else
+        {
+            throw new Error("Parameter w in EarleyScottItem must be an instance of Node or null.");
+        }
+    }
+
     isEqual(earleyScottItem)
     {
         if( this._i === earleyScottItem.i
@@ -354,12 +382,29 @@ class Production
         return this._rhs.split(" ");
     }
 
-    get nonTerminalAfterCursor()
+    nonTerminalAfterCursor(nonTerminalsArrayReference)
     {
-        if(this.cursorIsInFrontOfNonTerminal())
+        if(this.cursorIsInFrontOfNonTerminal(nonTerminalsArrayReference))
         {
             let ix = this.rhs.indexOf("·");
             return this.rhs[ix + 1];
+        }
+        else
+        {
+            throw new Error("The cursor is not in front of a non-terminal");
+        }
+    }
+
+    terminalAfterCursor(terminalsArrayReference)
+    {
+        if(this.cursorIsInFrontOfTerminal(terminalsArrayReference))
+        {
+            let ix = this.rhs.indexOf("·");
+            return this.rhs[ix + 1];
+        }
+        else
+        {
+            throw new Error("The cursor is not in front of a terminal");
         }
     }
 
@@ -388,12 +433,20 @@ class Production
         this._rhs = arr.join(" ");
     }
 
-    cursorIsInFrontOfNonTerminal()
+    cursorIsInFrontOfNonTerminal(nonTerminalsArrayReference)
     {
         let rhs_components = this.rhs;
         let ix = rhs_components.indexOf("·");
         if(ix == rhs_components.length - 1) return false;
-        return this._nonTerminals.has(rhs_components[ix + 1]);
+        return nonTerminalsArrayReference.has(rhs_components[ix + 1]);
+    }
+
+    cursorIsInFrontOfTerminal(terminalsArrayReference)
+    {
+        let rhs_components = this.rhs;
+        let ix = rhs_components.indexOf("·");
+        if(ix == rhs_components.length - 1) return false;
+        return terminalsArrayReference.has(rhs_components[ix + 1]);
     }
 
     cursorIsAtBeginning()
@@ -408,7 +461,9 @@ class Production
     {
         let rhs_components = this.rhs;
         let ix = rhs_components.indexOf("·");
-        if(is === rhs_components.length -1) return true;
+        if(ix === rhs_components.length - 1) return true;
+        // Handle if cursor is in front of epsilon which is at the end.
+        else if(rhs_components.indexOf("eps") == rhs_components.length - 1 && ix == rhs_components.length - 2) return true;
         else return false;
     }
 
@@ -421,14 +476,99 @@ class Production
 
 class Node
 {
-    constructor(earleyScottItem)
+    constructor(productionOrNTorT, startIndex, endIndex, terminalsArrayReference, nonTerminalsArrayReference)
     {
-        this._earleyScottItem = earleyScottItem;
+        this._non_terminal_type = "non-terminal";
+        this._terminal_type = "terminal";
+        this._production_type = "production";
+        
+        if(productionOrNTorT === undefined)
+        {
+            productionOrNTorT = "eps";
+        }
+
+        if(productionOrNTorT instanceof Production)
+        {
+            this._production = productionOrNTorT;
+            this._nonTerminal = null;
+            this._terminal = null;
+        }
+        else if(nonTerminalsArrayReference.has(productionOrNTorT))
+        {  
+            this._production = null;
+            this._nonTerminal = productionOrNTorT;
+            this._terminal = null;
+        }
+        else if(terminalsArrayReference.has(productionOrNTorT))
+        {
+            this._production = null;
+            this._nonTerminal = null;
+            this._terminal = productionOrNTorT;
+        }
+        else
+        {
+            throw new Error("Parameter productionPrNTorT must be of type Production or be a legal terminal or non-terminal.");
+        }
+
+        if((typeof(startIndex) == "number" && typeof(endIndex) == "number") 
+            || (startIndex === null && endIndex === null && this._terminal == "eps"))
+        {
+            this._startIndex = startIndex;
+            this._endIndex = endIndex;
+        }
+        else
+        {
+            throw new Error("Parameters startIndex and endIndex must be a number or both must be null in case of epsilon node.");
+        }
+
         this._familiesOfChildren = []; // Must only have objects of type UnaryFamily or BinaryFamily
+    }
+
+    get label_1()
+    {
+        if(this.typeofNode() == this._terminal_type) return this._terminal;
+        else if(this.typeofNode() == this._non_terminal_type) return this._nonTerminal;
+        else if(this.typeofNode() == this._production_type) return this._production;
+        else throw new Error("Unexpected error.");
+    }
+
+    get startIndex()
+    {
+        return this._startIndex;
+    }
+
+    get endIndex()
+    {
+        return this._endIndex;
+    }
+
+    // Note that the "node types" here are not according to Scott's paper but to distinguish between label types, i.e. the first part of the label.
+    typeofNode()
+    {
+        if(this._production === null && this._nonTerminal === null)
+        {
+            return this._terminal_type;
+        }
+        else if(this._production === null && this._terminal === null)
+        {
+            return this._non_terminal_type;
+        }
+        else if(this._terminal === null && this._nonTerminal === null)
+        {
+            return this._production_type;
+        }
+        else
+        {
+            throw new Error("Unexpected error.");
+        }
     }
 
     addFamilyOfChildren(family)
     {
+        if(this.typeofNode() == this._terminal_type)
+        {
+            throw Error("Terminal nodes cannot have families attached to them.");
+        }
         if(family instanceof UnaryFamily || family instanceof BinaryFamily)
         {
             this._familiesOfChildren.push(family);
@@ -436,24 +576,19 @@ class Node
         else throw new Error("A family of chilren of Node must be of type UnaryFamily of BinaryFamily");
     }
 
-    get earleyScottItem()
-    {
-        return this._earleyScottItem;
-    }
-
     hasFamily(family)
     {
         this._familiesOfChildren.forEach(fam => {
             if(family instanceof BinaryFamily 
                 && fam instanceof BinaryFamily
-                && fam.node.earleyScottItem.isEqual(family.node.earleyScottItem)
-                && fam.node2.earleyScottItem.isEqual(family.node2.earleyScottItem))
+                && fam.node.isEqual(family.node)
+                && fam.node2.isEqual(family.node2))
             {
                 return true;
             }
             else if(family instanceof UnaryFamily
                 && fam instanceof UnaryFamily
-                && fam.node.earleyScottItem.isEqual(family.node.earleyScottItem))
+                && fam.node.isEqual(family.node))
             {
                 return true;   
             }
@@ -461,10 +596,34 @@ class Node
         return false;
     }
     
-    isEqual()
+    isEqual(node)
     {
-        if(this._earleyScottItem.isEqual()) return true;
-        else return false;
+        if(this.typeofNode() != node.typeofNode())
+        {
+            return false;
+        }
+        if(this.startIndex != node.startIndex || this.endIndex != node.endIndex)
+        {
+            return false;
+        }
+        if(this.typeofNode() == this._production_type)
+        {
+            return this._production.isEqual(node.label_1);
+
+        }
+        else if(this.typeofNode() == this._non_terminal_type)
+        {
+            return this._nonTerminal == node.label_1;
+
+        }
+        else if(this.typeofNode() == this._terminal_type)
+        {
+            return this._terminal == node.label_1;
+        }
+        else
+        {
+            throw new Error("Unexpected error");
+        }
     }
 }
 

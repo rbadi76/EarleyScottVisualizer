@@ -43,7 +43,7 @@ app.post('/api/v1/createParser', (req, res) => {
         console.log(`Got alphabet ${req.body.alphabet}, tokenstring  ${req.body.tokenString} and grammar ${req.body.grammar}`);
 
         let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
-        earleyScott.parse();
+        let outcome = earleyScott.parse();
 
 
         respArray.push({ result: 'Correct'});
