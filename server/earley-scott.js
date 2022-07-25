@@ -85,7 +85,7 @@ class EarleyScott
                         // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
                         // Checking if delta starts with a non-terminal according to original by Scott.
                         if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.terminalAfterCursor(this._terminals) == "eps")
-                            && !this._E[i].some(item => item.isEqual(newProductionWithDotAtBeginning)))
+                            && !this._E[i].some(item => item.productionOrNT.isEqual(newProductionWithDotAtBeginning)))
                         {
                             this._E[i].push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
                             this._R.push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
@@ -119,16 +119,8 @@ class EarleyScott
                 {
                     if(element.w == null)
                     {
-                        let D_node;
-                        if(element.productionOrNT instanceof Production)
-                        {
-                            D_node = new Node(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), i, i);
-                        }
-                        else
-                        {
-                            D_node = new Node(element.productionOrNT, i, i);
-                        }
-                         
+                        let D_node = new Node(element.productionOrNT.lhs, i, i, this._terminals, this._nonTerminals);
+                        
                         let arr = this._V.filter(item => item.isEqual(D_node));
                         if(arr.length === 0)
                         {
@@ -141,8 +133,6 @@ class EarleyScott
                         }
                         element.w = v;
 
-                        // ERROR HERE: I guess this error has to do with deficient cloning. The program tries to run hasFamily
-                        // but the array has one empty element causing the error: TypeError: Cannot read properties of undefined (reading 'isEqual')
                         let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node("eps", null, null, this._terminals, this._nonTerminals));
                         if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
                         {
@@ -152,7 +142,7 @@ class EarleyScott
                     }
                     if(element.i == i)
                     {
-                        this._H.push(new H_Item(element.productionOrNT.lhs), element.w);
+                        this._H.push(new H_Item(element.productionOrNT.lhs, element.w));
                     }
                     for(let j=0; j <= i; j++)
                     {
@@ -160,19 +150,30 @@ class EarleyScott
                             if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
                                 && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
                             {
-                                item.productionOrNT.moveCursorForwardByOne;
-                                let y = this.make_node(item.productionOrNT, item.i, i, item.w, element.w, this._V);
+                                // Need to copy the item first as otherwise calling moveCursorForwardByOne messes up the ESI in E_i which might need to be used later unchanged.
+                                let newEarleyScottItem = new EarleyScottItem(
+                                    new Production(item.productionOrNT.lhs, item.productionOrNT.rhs.join(" ")), 
+                                    item.i, 
+                                    item.w // w is an node reference so it does not need to be copied.
+                                );
+                                newEarleyScottItem.productionOrNT.moveCursorForwardByOne();
+                                let y = this.make_node(newEarleyScottItem.productionOrNT, newEarleyScottItem.i, i, newEarleyScottItem.w, element.w, this._V);
+
+                                let newNodeWith_y_asAChild = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
+                                
                                 // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
-                                if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
-                                    && this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(item.productionOrNT) 
-                                    && innerItem.i == item.i && innerItem.w == item.w))
+                                if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                                    && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
+                                    && innerItem.i == newEarleyScottItem.i && innerItem.w == y))
                                 {
-                                    this._E[i].push(item);
-                                    this._R.push(item);   
+                                    this._E[i].push(newNodeWith_y_asAChild);
+                                    this._R.push(newNodeWith_y_asAChild);   
                                 }
-                                if(item.productionOrNT.betaAfterCursor[0] == this._tokens[i +1])
+                                // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
+                                // according to Scott's paper. 
+                                if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1])
                                 {
-                                    this._Q.push(item);
+                                    this._Q.push(newNodeWith_y_asAChild);
                                 }
                             }
                         });
@@ -347,14 +348,19 @@ class EarleyScottItem
 
     isEqual(earleyScottItem)
     {
+        if(!(earleyScottItem instanceof EarleyScottItem))
+        {
+            throw new Error("Parameter is not of type EarleyScottItem.");
+        }
+
         if( this._i === earleyScottItem.i
             && this._w === earleyScottItem.w)
         {
-            if(this._productionOrNT instanceof Production && this._productionOrNT.isEqual(earleyScottItem.production))
+            if(this._productionOrNT instanceof Production && this._productionOrNT.isEqual(earleyScottItem.productionOrNT))
             {
                 return true;
             } 
-            else if(!(this._productionOrNT instanceof Production) && this._productionOrNT == earleyScottItem.lhs)
+            else if(!(this._productionOrNT instanceof Production) && this._productionOrNT == earleyScottItem.productionOrNT)
             {
                 return true;
             }
@@ -631,7 +637,7 @@ class UnaryFamily
 {
     constructor(node)
     {
-        this._node;
+        this._node = node;
     }
 
     get node()
