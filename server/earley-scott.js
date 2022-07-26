@@ -21,6 +21,11 @@ class EarleyScott
 
         this._startProductions = this._grammar.filter(production => production.lhs == 'S')
 
+        if(!this._startProductions.length)
+        {
+            throw new Error("There must be at least one start productions with left hand side non-terminal 'S' in the grammar.");
+        }
+
         this._grammar.forEach(production => {
             this._nonTerminals.add(production.lhs);
             this._terminalsAndNonTerminals.add(production.lhs);
