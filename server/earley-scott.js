@@ -53,8 +53,8 @@ class EarleyScott
 
             // According to Scott ΣN is the set of all strings of terminals and non-terminals that start with a non-terminal. 
             // Since this set can be infinite and is in the theoretical realm we simply check if the first token is a non-terminal.
-            // // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
-            if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals))
+            // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+            if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || esItem.productionOrNT.cursorIsAtEnd())
             {
                 this._E[0].push(esItem);
             }
@@ -82,17 +82,21 @@ class EarleyScott
                     let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
                     productionsStartingWithTheNonTerminal.forEach(production => {
                         let newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
-                        // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
+
+                        let newEarleyScottItem = new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null);
+
+                        // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
                         // Checking if delta starts with a non-terminal according to original by Scott.
-                        if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.terminalAfterCursor(this._terminals) == "eps")
+                        if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.cursorIsAtEnd())
                             && !this._E[i].some(item => item.productionOrNT.isEqual(newProductionWithDotAtBeginning)))
                         {
-                            this._E[i].push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
-                            this._R.push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
+                            this._E[i].push(newEarleyScottItem);
+                            this._R.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
                         }
-                        if(this._tokens[i + 1] == production.lhs[0])
+                        // Note the difference from original paper here as the array is 0-based but the string is 1-based in paper.
+                        if(this._tokens[i] == production.rhs[0] && !this._Q.some(item => item.isEqual(newEarleyScottItem))) 
                         {
-                            this._Q.push(new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null));
+                            this._Q.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
                         }
 
                     });
@@ -102,14 +106,14 @@ class EarleyScott
                         element.moveCursorForwardByOne();
                         let y = this.make_node(element, element.i, i, element.w, v, V);
                         let newElement = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
-                        // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
-                        if(element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                        // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+                        if((element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || element.productionOrNT.cursorIsAtEnd())
                             && !this._E[i].some(earleyScrottItem => earleyScrottItem.isEqual(newElement)))
                         {
                             this._E[i].push(newElement);
                             this._R.push(newElement);
                         }
-                        if(newElement.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1])
+                        if(newElement.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's.
                         {
                             this._Q.push(newElement);
                         }
@@ -161,8 +165,8 @@ class EarleyScott
 
                                 let newNodeWith_y_asAChild = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
                                 
-                                // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
-                                if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                                // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+                                if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                                     && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
                                     && innerItem.i == newEarleyScottItem.i && innerItem.w == y))
                                 {
@@ -171,7 +175,7 @@ class EarleyScott
                                 }
                                 // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
                                 // according to Scott's paper. 
-                                if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1])
+                                if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
                                 {
                                     this._Q.push(newNodeWith_y_asAChild);
                                 }
@@ -183,7 +187,7 @@ class EarleyScott
             }
 
             this._V = [];
-            v = new Node(this._tokens[i + 1], i, i + 1, this._terminals, this._nonTerminals);
+            v = new Node(this._tokens[i], i, i + 1, this._terminals, this._nonTerminals);
             
             while(this._Q.length)
             {
@@ -192,23 +196,26 @@ class EarleyScott
                 let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
                 
                 let newEarleyScottItem = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
-                // production.cursorIsInFrontOfNonTerminal fullfills the criteria of delta being in ΣN.
-                if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal)
+                // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+                if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                 {
                     this._E[i + 1].push(newEarleyScottItem);
                 }
-                if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 2])
+                if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1]) // Note our token array is 0-based unlike Scott's
                 {
                     this._Qmarked.push(newEarleyScottItem);
                 }
             }
         }
 
-        let arrayOfStartProductions = this._E[this._tokens.length].filter(item => item.productionOrNT.lhs == "S" && item.productionOrNT.cursorIsAtEnd
-            && item.i === 0, item.w.isEqual(w));
+        let arrayOfStartProductions = this._E[this._tokens.length].filter(item => item.productionOrNT.lhs == "S" 
+            && item.productionOrNT.cursorIsAtEnd()
+            && item.i === 0
+            && item.w !== null);
+
         if(arrayOfStartProductions.length)
         {
-            return w;
+            return arrayOfStartProductions[0].w;
         }
         else
         {
@@ -245,7 +252,7 @@ class EarleyScott
     {
         // Do some type checking before continuing.
         if(production instanceof Production && typeof(j) == "number" && typeof(i) == "number"
-        && (typeof(w) == "number" || w === null) && v instanceof Node && V instanceof Array)
+        && (w instanceof Node || w === null) && v instanceof Node && V instanceof Array)
         {
             // ... and then continue
             let s;
@@ -259,28 +266,28 @@ class EarleyScott
             }
             
             let y;
-            if(production.alphaBeforeCursor[0] == "eps" && production.getBetaAfterCursor != "eps")
+            if(production.alphaBeforeCursor[0] == "eps" && production.betaAfterCursor != "eps")
             {
                 y = v;
             }
             else
             {
-                let newESI = new EarleyScottItem(s, j, i);
-                let y = V.find(node => node.earleyScottItem.isEqual(newESI));
-                if(y.length === 0)
+                let newNode = new Node(s, j, i, this._terminals, this._nonTerminals);
+                y = V.find(node => node.isEqual(newNode));
+                if(typeof y === "undefined")
                 {
-                    y = new Node(newESI);
+                    y = newNode;
                     V.push(y);
                 }
     
                 let unFam = new UnaryFamily(v);
-                if(w === null && !y.familiesOfChildren.hasFamily(v))
+                if(w === null && !y.hasFamily(v))
                 {
                     y.addFamilyOfChildren(unFam);
                 }
     
                 let binFam = new BinaryFamily(w, v);
-                if(w !== null && !y.familiesOfChildren.hasFamily(binFam))
+                if(w !== null && !y.hasFamily(binFam))
                 {
                     y.addFamilyOfChildren(binFam);
                 }
