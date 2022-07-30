@@ -21,6 +21,11 @@
         <div class="container">
             <h1 class="text-center">Earley-Scott Visualizer</h1>
 
+            <div id="errorpanel" class="alert alert-danger" hidden>
+                <h2 class="text-center">Error</h2>
+            </div>
+
+
             <form>
                 <div class="checkbox">
                     <label>
@@ -40,7 +45,7 @@
                     <textarea class="form-control" id="grammar"></textarea>
                 </div>
 
-                <button type="button" class="btn btn-primary" onclick="sendParseRequest()">Parse</button>
+                <button type="button" class="btn btn-primary" onclick="validatePrepareAndSend()">Parse</button>
             </form>
 
 

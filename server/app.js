@@ -46,7 +46,7 @@ app.post('/api/v1/createParser', (req, res) => {
         let outcome = earleyScott.parse();
 
 
-        respArray.push({ result: 'Correct'});
+        respArray.push({ result: 'OK'});
         return res.status(200).json(respArray);
     }
     catch(error)
