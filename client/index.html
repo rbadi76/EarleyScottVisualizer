@@ -26,7 +26,7 @@
             </div>
 
 
-            <form>
+            <form id="mainform">
                 <div class="checkbox">
                     <label>
                         <input type="checkbox" id="areWords" onchange="handleChange(this)" /> Words
@@ -47,6 +47,49 @@
 
                 <button type="button" class="btn btn-primary" onclick="validatePrepareAndSend()">Parse</button>
             </form>
+
+            <div class="container" id="queuesAndSets" hidden>
+                <div class="row">
+                    <div class="col-8"> <!-- Queues area -->
+                        <div class="row">
+                            <div class="col">Q</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">Q'</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">R</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">H</div>
+                        </div>
+                    </div>
+                    <div class="col-4"> <!-- Tokens and grammar area -->
+                        <div class="row">
+                            <div class="col">Tokens</div>
+                        </div>
+                        <div class="row">
+                            <div class="col">Grammar</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row"> <!-- Earley sets area -->
+                    <div class="col"><h2>Earley sets</h2></div>
+                </div>
+                <!-- Add rows and coluns dynamically. For each i add a column up to 12, then start a new row for the next 12 etc. -->
+                <div class="row"> <!-- REMOVE LATER - Adding this row and child columns for testing.-->
+                    <div class="col">E0</div>
+                    <div class="col">E1</div>
+                    <div class="col">E2</div>
+                    <div class="col">E3</div>
+                </div>
+                <div class="row">
+                    <div class="col">V</div>
+                </div>
+                <div class="row">
+                    <div class="col"><h2>Nodes</h2></div>
+                </div>
+            </div>
 
 
             <!--<button id="btnTest" onclick="testConnection()">Test webservice</button>-->

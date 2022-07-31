@@ -61,7 +61,12 @@ function validatePrepareAndSend()
         errorpanel.setAttribute("hidden", "true");
         reqObj = new RequestObject(alphabetStr, tokenStr, grammarText, areWords);
         sendParseRequest(reqObj);
-        //console.log(JSON.stringify(reqObj));
+        
+        let queuesAndSets = document.getElementById("queuesAndSets");
+        queuesAndSets.removeAttribute("hidden");
+
+        let mainform = document.getElementById("mainform");
+        mainform.setAttribute("hidden", "true");
     }
 
 }
@@ -80,7 +85,7 @@ function sendParseRequest(reqObj)
             //When successful, print 'Success: ' and the received data
             if(response.data[0].result == 'OK')
             {
-                alert("OK");
+                alert("Parsing done!");  
             }
         })
         .catch(function (error) {
@@ -93,8 +98,9 @@ function sendParseRequest(reqObj)
             errorpanel.appendChild(p);
             errorpanel.removeAttribute("hidden")
         });
-   
 }
+
+
 
 function showErrorMessage(message)
 {
