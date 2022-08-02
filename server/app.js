@@ -5,11 +5,14 @@ const cors = require('cors');
 
 const bodyParser = require('body-parser');
 const { EarleyScott } = require('./earley-scott');
+const { ParseStatus } = require('./parseStatus');
 app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 app.use(bodyParser.json({ limit: '5mb' }));
 app.use(cors());
 
 const port = process.env.PORT || 3000;
+
+
 
 app.get('/api/v1/testget', (req, res) => {
     let respArray = [];
