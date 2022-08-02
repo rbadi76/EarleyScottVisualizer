@@ -147,7 +147,7 @@ function validateAlphabetStr(alphabetStr, areWords)
     let tokens = alphabetStr.split(" ");
     for(let i = 0; i < tokens.length; i++)
     {
-        if(tokens[i].length > 1) 
+        if(tokens[i].length > 1 && tokens[i] != "eps") 
         {
             let text = document.createTextNode("Please put in single characters for the alphabet.")
             p.append(text);
