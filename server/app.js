@@ -5,14 +5,13 @@ const cors = require('cors');
 
 const bodyParser = require('body-parser');
 const { EarleyScott } = require('./earley-scott');
-const { ParseStatus } = require('./parseStatus');
+let parseStatus = require('./parseStatusM');
+
 app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 app.use(bodyParser.json({ limit: '5mb' }));
 app.use(cors());
 
 const port = process.env.PORT || 3000;
-
-
 
 app.get('/api/v1/testget', (req, res) => {
     let respArray = [];
@@ -50,6 +49,47 @@ app.post('/api/v1/createParser', (req, res) => {
 
 
         respArray.push({ result: 'OK'});
+        return res.status(200).json(respArray);
+    }
+    catch(error)
+    {
+        console.log(error);
+        respArray.push({ result: 'Error', error: 'Internal server error'});
+        return res.status(500).json(respArray);
+    }
+});
+
+app.get('/api/v1/getStatus/:step', (req, res) => {
+    let respArray = [];
+    try
+    {
+        let currentStep = parseStatus.parseStatus.getCurrentStep();
+        if(parseStatus.parseStatus.isInStopState())
+        {
+            // Todo: Figure out how to send and receive step number from client, i.e. data format.
+            // This if-clause indicates that data has not been received before. Get the data here.
+            respArray.push(
+                {   result: 'Parsing updated', 
+                    step: currentStep,
+                    Q: parseStatus.parseStatus.Q,
+                    R: parseStatus.parseStatus.R,
+                    V: parseStatus.parseStatus.V,
+                    Qmarked: parseStatus.parseStatus.Qmarked,
+                    H: parseStatus.parseStatus.H,
+            });
+            parseStatus.parseStatus.incrementNextStepToShow();
+            console.log("Server getStatus called: New state retrieved.");
+        }
+        else
+        {
+            // otherwise tell client that data is the same as before or resend it depending on testing.
+            respArray.push(
+                {   result: 'No change to parsing', 
+                    step: currentStep,
+            });
+            console.log("Server getStatus called: No change to parsing.");
+        }
+
         return res.status(200).json(respArray);
     }
     catch(error)

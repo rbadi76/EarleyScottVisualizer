@@ -1,3 +1,29 @@
+let parseStatus = require('./parseStatusM');
+
+function sleep(ms) {
+    return new Promise(
+        resolve => setTimeout(resolve, ms)
+    );
+}
+
+async function continueWhenAllowed(parseStatus, earleyScott)
+{
+    while(!parseStatus.parseStatus.canContinue())
+    {
+        console.log("Cannot continue. Sleeping for 1 sec.");
+        await sleep(1000);
+    }
+    console.log("Can continue now. Updating parseStatus.");
+    parseStatus.parseStatus.setE = earleyScott._E;
+    parseStatus.parseStatus.setR = earleyScott._R;
+    parseStatus.parseStatus.setV = earleyScott._V;
+    parseStatus.parseStatus.setQ = earleyScott._Q;
+    parseStatus.parseStatus.setQmarked = earleyScott._Qmarked;
+
+    // put into send
+    parseStatus.parseStatus.incrementLastStepShown();
+}
+
 class EarleyScott
 {
     constructor(tokens, alphabet, grammar){
@@ -46,7 +72,11 @@ class EarleyScott
 
         this._R = [];        // Queue R initialized, will be and array of EarleyScottItem-objects
         this._Qmarked = [];  // Queue Q' initialized, will be and array of EarleyScottItem-objects
-        this._V = [];        // Queue V initialized, will be and array of Nodes       
+        this._V = [];        // Queue V initialized, will be and array of Nodes     
+        
+        parseStatus.parseStatus.resetParseStatus();
+        parseStatus.parseStatus.setTotalSteps(15); // TODO: Set correct number later
+        continueWhenAllowed(parseStatus, this);
     }
 
     parse(){
@@ -62,11 +92,13 @@ class EarleyScott
             if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || esItem.productionOrNT.cursorIsAtEnd())
             {
                 this._E[0].push(esItem);
+                continueWhenAllowed(parseStatus, this);
             }
 
             if(esItem.productionOrNT.cursorIsInFrontOfTerminal(this._terminals) && this._tokens[0] == esItem.productionOrNT.terminalAfterCursor(this._terminals))
             {
                 this._Qmarked.push(esItem);
+                continueWhenAllowed(parseStatus, this);
             }
         });
 
@@ -97,11 +129,13 @@ class EarleyScott
                         {
                             this._E[i].push(newEarleyScottItem);
                             this._R.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
+                            continueWhenAllowed(parseStatus, this);
                         }
                         // Note the difference from original paper here as the array is 0-based but the string is 1-based in paper.
                         if(this._tokens[i] == production.rhs[0] && !this._Q.some(item => item.isEqual(newEarleyScottItem))) 
                         {
                             this._Q.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
+                            continueWhenAllowed(parseStatus, this);
                         }
 
                     });
@@ -117,10 +151,12 @@ class EarleyScott
                         {
                             this._E[i].push(newElement);
                             this._R.push(newElement);
+                            continueWhenAllowed(parseStatus, this);
                         }
                         if(newElement.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's.
                         {
                             this._Q.push(newElement);
+                            continueWhenAllowed(parseStatus, this);
                         }
                     }
                 }
@@ -135,6 +171,7 @@ class EarleyScott
                         {
                             v = D_node;
                             this._V.push(v);
+                            continueWhenAllowed(parseStatus, this);
                         }
                         else
                         {
@@ -146,12 +183,14 @@ class EarleyScott
                         if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
                         {
                             element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
+                            continueWhenAllowed(parseStatus, this);
                         }
 
                     }
                     if(element.i == i)
                     {
                         this._H.push(new H_Item(element.productionOrNT.lhs, element.w));
+                        continueWhenAllowed(parseStatus, this);
                     }
                     for(let j=0; j <= i; j++)
                     {
@@ -177,12 +216,14 @@ class EarleyScott
                                 {
                                     this._E[i].push(newNodeWith_y_asAChild);
                                     this._R.push(newNodeWith_y_asAChild);   
+                                    continueWhenAllowed(parseStatus, this);
                                 }
                                 // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
                                 // according to Scott's paper. 
                                 if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
                                 {
                                     this._Q.push(newNodeWith_y_asAChild);
+                                    continueWhenAllowed(parseStatus, this);
                                 }
                             }
                         });
@@ -205,10 +246,12 @@ class EarleyScott
                 if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                 {
                     this._E[i + 1].push(newEarleyScottItem);
+                    continueWhenAllowed(parseStatus, this);
                 }
                 if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1]) // Note our token array is 0-based unlike Scott's
                 {
                     this._Qmarked.push(newEarleyScottItem);
+                    continueWhenAllowed(parseStatus, this);
                 }
             }
         }
