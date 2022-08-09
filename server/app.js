@@ -13,12 +13,59 @@ app.use(cors());
 
 const port = process.env.PORT || 3000;
 
-app.get('/api/v1/testget', (req, res) => {
+function sleep(ms) {
+    return new Promise(
+        resolve => setTimeout(resolve, ms)
+    );
+
+}
+
+let counter = 0;
+let mayContinue = false;
+
+async function sleepXTimes(n)
+{
+    counter = n;
+    if(n == 0)
+    {
+        console.log("n = 0 now so I'll stop.");
+        return;
+    } 
+    
+    if(mayContinue == false) 
+    {
+        console.log("Going to sleep. Counter at " + counter);
+        await sleep(1000);
+        console.log("Awake again, calling sleepXTimes with n = " + n);
+        setImmediate(() => sleepXTimes(n));
+    }
+    else
+    {
+        console.log("Can continue, calling sleepXTimes with n = " + (n - 1));
+        mayContinue = false;
+        setImmediate(() => sleepXTimes(n - 1));
+    }
+}
+
+app.post('/api/v1/testpost', (req, res) => {
+    console.log("Testpost called");
+    //setImmediate(() => sleepXTimes(10));
+    sleepXTimes(10);
+
     let respArray = [];
-    respArray.push({ id: 1, value: 1 });
+    respArray.push({ status: 'Process started' });
     return res.status(200).json(respArray);
 });
 
+app.get('/api/v1/testget', (req, res) => {
+    console.log("testget called");
+    let respArray = [];
+    respArray.push({ Counter: counter });
+    mayContinue = true;
+    return res.status(200).json(respArray);
+});
+
+/*
 app.post('/api/v1/testpost', (req, res) => {
     let respArray = [];
     console.log(`Got id ${req.body.id} and value ${req.body.value}`);
@@ -33,7 +80,7 @@ app.post('/api/v1/testpost', (req, res) => {
         return res.status(400).json(respArray);
     }
     
-});
+});*/ 
 
 app.post('/api/v1/createParser', (req, res) => {
     let respArray = [];
@@ -48,7 +95,7 @@ app.post('/api/v1/createParser', (req, res) => {
         let outcome = earleyScott.parse();
 
 
-        respArray.push({ result: 'OK'});
+        respArray.push({ result: outcome});
         return res.status(200).json(respArray);
     }
     catch(error)
@@ -63,6 +110,7 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
     let respArray = [];
     try
     {
+        console.log("Server getStatus called. This is the beginning.");
         let currentStep = parseStatus.parseStatus.getCurrentStep();
         if(parseStatus.parseStatus.isInStopState())
         {
@@ -84,7 +132,7 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
         {
             // otherwise tell client that data is the same as before or resend it depending on testing.
             respArray.push(
-                {   result: 'No change to parsing', 
+                {   result: 'Algorithm busy', 
                     step: currentStep,
             });
             console.log("Server getStatus called: No change to parsing.");

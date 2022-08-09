@@ -12,6 +12,7 @@ async function continueWhenAllowed(parseStatus, earleyScott)
     {
         console.log("Cannot continue. Sleeping for 1 sec.");
         await sleep(1000);
+
     }
     console.log("Can continue now. Updating parseStatus.");
     parseStatus.parseStatus.setE = earleyScott._E;
@@ -23,6 +24,30 @@ async function continueWhenAllowed(parseStatus, earleyScott)
     // put into send
     parseStatus.parseStatus.incrementLastStepShown();
 }
+
+function continueIfAllowed(nextFunction)
+{
+    if(!parseStatus.parseStatus.canContinue())
+    {
+        console.log("Cannot continue. Sleeping for 1 sec.");
+        setTimeout(continueIfAllowed(parseStatus, earleyScott), 1000);
+    }
+    else
+    {
+        console.log("Can continue now. Updating parseStatus.");
+        setImmediate(nextFunction);
+    }
+}
+
+function updateParseStatus(parseStatus, earleyScott)
+{
+    parseStatus.parseStatus.setE = earleyScott._E;
+    parseStatus.parseStatus.setR = earleyScott._R;
+    parseStatus.parseStatus.setV = earleyScott._V;
+    parseStatus.parseStatus.setQ = earleyScott._Q;
+    parseStatus.parseStatus.setQmarked = earleyScott._Qmarked;
+}
+
 
 class EarleyScott
 {
@@ -76,7 +101,8 @@ class EarleyScott
         
         parseStatus.parseStatus.resetParseStatus();
         parseStatus.parseStatus.setTotalSteps(15); // TODO: Set correct number later
-        continueWhenAllowed(parseStatus, this);
+        //continueWhenAllowed(parseStatus, this);
+        console.log("EarleyScott constructor finished.");
     }
 
     parse(){
@@ -93,6 +119,7 @@ class EarleyScott
             {
                 this._E[0].push(esItem);
                 continueWhenAllowed(parseStatus, this);
+                console.log("Have pushed and continued.");
             }
 
             if(esItem.productionOrNT.cursorIsInFrontOfTerminal(this._terminals) && this._tokens[0] == esItem.productionOrNT.terminalAfterCursor(this._terminals))
@@ -270,6 +297,32 @@ class EarleyScott
             return "FAILURE";
         }
     }
+
+    async parseAsync1()
+    {
+        let startProduction = this._startProductions.shift();
+        // Create an item that might be used in the next two if-statements.
+        let esItem = new EarleyScottItem(new Production('S', '· ' + startProduction.rhs.join(" ")), 0, null);
+
+        // According to Scott ΣN is the set of all strings of terminals and non-terminals that start with a non-terminal. 
+        // Since this set can be infinite and is in the theoretical realm we simply check if the first token is a non-terminal.
+        // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+        if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || esItem.productionOrNT.cursorIsAtEnd())
+        {
+            this._E[0].push(esItem);
+            continueWhenAllowed(parseStatus, this);
+        }
+
+        if(esItem.productionOrNT.cursorIsInFrontOfTerminal(this._terminals) && this._tokens[0] == esItem.productionOrNT.terminalAfterCursor(this._terminals))
+        {
+            this._Qmarked.push(esItem);
+            continueWhenAllowed(parseStatus, this);
+        }
+        updateParseStatus(parseStatus, this);
+        if(this._startProductions.length == 0) continueIfAllowed(this.parseAsync2);
+        else continueIfAllowed(this.parseAsync1);
+    }
+    
 
     cloneEarleyScottItem(item)
     {
