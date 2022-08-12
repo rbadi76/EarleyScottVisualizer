@@ -25,16 +25,17 @@ async function continueWhenAllowed(parseStatus, earleyScott)
     parseStatus.parseStatus.incrementLastStepShown();
 }
 
-function continueIfAllowed(nextFunction)
+async function continueIfAllowed(nextFunction)
 {
     if(!parseStatus.parseStatus.canContinue())
     {
         console.log("Cannot continue. Sleeping for 1 sec.");
-        setTimeout(continueIfAllowed(parseStatus, earleyScott), 1000);
+        await sleep(1000);
+        continueIfAllowed(nextFunction);
     }
     else
     {
-        console.log("Can continue now. Updating parseStatus.");
+        console.log("Can continue now. Calling next function.");
         setImmediate(nextFunction);
     }
 }
@@ -101,7 +102,6 @@ class EarleyScott
         
         parseStatus.parseStatus.resetParseStatus();
         parseStatus.parseStatus.setTotalSteps(15); // TODO: Set correct number later
-        //continueWhenAllowed(parseStatus, this);
         console.log("EarleyScott constructor finished.");
     }
 
@@ -133,7 +133,7 @@ class EarleyScott
             
             // Initialize the queues
             this._H = [];
-            this._R = this._E[i].map(x => this.cloneEarleyScottItem(x)); // CLONE HAS BEEN IMPLEMENTED BUT NOT TESTED
+            this._R = this._E[i].map(x => this.cloneEarleyScottItem(x)); 
             this._Q = this._Qmarked.map(x => this.cloneEarleyScottItem(x)); 
             this._Qmarked = [];
             let v; // Initializing but is not used or given a value until later in the loop.
@@ -166,11 +166,11 @@ class EarleyScott
                         }
 
                     });
-                    if(this._H.some(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) && 
-                        h_item.node.isEqual(v)))
+                    if(this._H.some(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals)))
                     {
+                        let h_items = this._H.filter(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
                         element.moveCursorForwardByOne();
-                        let y = this.make_node(element, element.i, i, element.w, v, V);
+                        let y = this.make_node(element, element.i, i, element.w, h_items[0].node, this._V);
                         let newElement = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
                         // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
                         if((element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || element.productionOrNT.cursorIsAtEnd())
@@ -300,6 +300,13 @@ class EarleyScott
 
     async parseAsync1()
     {
+        console.log("Started parseAsync1 - start with waiting");
+        if(!parseStatus.parseStatus.canContinue())
+        {
+            continueIfAllowed(() => this.parseAsync1());
+            return;
+        }
+        
         let startProduction = this._startProductions.shift();
         // Create an item that might be used in the next two if-statements.
         let esItem = new EarleyScottItem(new Production('S', '· ' + startProduction.rhs.join(" ")), 0, null);
@@ -310,19 +317,292 @@ class EarleyScott
         if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || esItem.productionOrNT.cursorIsAtEnd())
         {
             this._E[0].push(esItem);
-            continueWhenAllowed(parseStatus, this);
         }
 
         if(esItem.productionOrNT.cursorIsInFrontOfTerminal(this._terminals) && this._tokens[0] == esItem.productionOrNT.terminalAfterCursor(this._terminals))
         {
             this._Qmarked.push(esItem);
-            continueWhenAllowed(parseStatus, this);
         }
+        console.log("Finishing parseAsync1 - updating and sleeping");
         updateParseStatus(parseStatus, this);
-        if(this._startProductions.length == 0) continueIfAllowed(this.parseAsync2);
-        else continueIfAllowed(this.parseAsync1);
+        parseStatus.parseStatus.incrementLastStepShown();
+        if(this._startProductions.length == 0) continueIfAllowed(() => this.parseAsync2_mainForLoop(0)); // Start with i = 0
+        else continueIfAllowed(() => this.parseAsync1());
+    }
+
+    async parseAsync2_mainForLoop(i)
+    {
+        console.log("Starting parseAsync2_mainForLoop.");
+        if(i > this._tokens.length)
+        {
+            console.log("For loop has ended. Going ot FinalSuccessCheck.");
+            continueIfAllowed(() => this.parseAsync9_FinalSuccessCheck());
+            return;
+        }
+
+        console.log("Starting initialization of more queues.");
+        // Initialize the queues
+        this._H = [];
+        this._R = this._E[i].map(x => this.cloneEarleyScottItem(x)); 
+        this._Q = this._Qmarked.map(x => this.cloneEarleyScottItem(x)); 
+        this._Qmarked = [];
+        //let v; // Initializing but is not used or given a value until later in the loop.
+
+        // NEED ANOTHER FUNCTION HERE FOR THE WHILE LOOP
+
+        let element;
+        
+        if(this._R.length)
+        {
+            console.log("Going into while loop.");
+            this.parseAsync3_whileLoop(i);
+        }
+        else
+        {
+            console.log("Going into CreateNewNode");
+            this.parseAsync8_CreateNewNode(i);
+        }   
+    }
+
+    async parseAsync3_whileLoop(i)
+    {
+        console.log("Started parseAsync3_whileLoop.");
+        let element = this._R.shift();
+
+        if(element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals))
+        {
+            let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
+            if(productionsStartingWithTheNonTerminal.length)
+            {
+                 await this.parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, element);
+            }
+        }
+        if(element.productionOrNT.cursorIsAtEnd())
+        {
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd(i, element))
+        }
+
+        if(this._R.length)
+        {
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync3_whileLoop(i));
+        }
+        else
+        {
+            // Go staight to node creation at the bottom.
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync8_CreateNewNode(i));
+        }
     }
     
+    async parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, originalElement)
+    {
+        let production = productionsStartingWithTheNonTerminal.shift();
+        let newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
+        let newEarleyScottItem = new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null);
+        
+        // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+        // Checking if delta starts with a non-terminal according to original by Scott.
+        if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.cursorIsAtEnd())
+            && !this._E[i].some(item => item.productionOrNT.isEqual(newProductionWithDotAtBeginning)))
+        {
+            this._E[i].push(newEarleyScottItem);
+            this._R.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
+        }
+        // Note the difference from original paper here as the array is 0-based but the string is 1-based in paper.
+        if(this._tokens[i] == production.rhs[0] && !this._Q.some(item => item.isEqual(newEarleyScottItem))) 
+        {
+            this._Q.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
+        }
+        updateParseStatus(parseStatus, this);
+        parseStatus.parseStatus.incrementLastStepShown();
+        if(productionsStartingWithTheNonTerminal.length)
+        {
+            continueIfAllowed(() => this.parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, originalElement));
+        } 
+        else
+        {
+            continueIfAllowed(() => this.parseAsync5_check_H_queue(i, originalElement));
+        }
+
+    }
+
+    async parseAsync5_check_H_queue(i, element)
+    {
+        if(this._H.some(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals))) // Taking out v comparison, no need for that
+        {
+            let h_elements = this._H.filter(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
+            element.moveCursorForwardByOne();
+            let y = this.make_node(element, element.i, i, element.w, h_elements[0].node, this._V);
+            let newElement = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
+            // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+            if((element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || element.productionOrNT.cursorIsAtEnd())
+                && !this._E[i].some(earleyScrottItem => earleyScrottItem.isEqual(newElement)))
+            {
+                this._E[i].push(newElement);
+                this._R.push(newElement);
+            }
+            if(newElement.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's.
+            {
+                this._Q.push(newElement);
+            }
+        }
+        if(element.productionOrNT.cursorIsAtEnd())
+        {
+            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd(i, originalElement));
+        }
+    }
+
+    async parseAsync6_CursorIsAtEnd(i, element)
+    {
+        if(element.w == null)
+        {
+            let D_node = new Node(element.productionOrNT.lhs, i, i, this._terminals, this._nonTerminals);
+            
+            let v;
+            let arr = this._V.filter(item => item.isEqual(D_node));
+            if(arr.length === 0)
+            {
+                v = D_node;
+                this._V.push(v);
+            }
+            else
+            {
+                v = arr[0];
+            }
+            element.w = v;
+
+            let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node("eps", null, null, this._terminals, this._nonTerminals));
+            if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
+            {
+                element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
+            }
+
+        }
+        if(element.i == i)
+        {
+            this._H.push(new H_Item(element.productionOrNT.lhs, element.w));
+        }
+        continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, 0));
+    }
+
+    async parseAsync7_CursorIsAtEndForLoop(i, element, j)
+    {
+        let copyOfEj = [];
+        this._E[j].forEach(item => {
+            let earleyScottItem = this.cloneEarleyScottItem(item);
+            copyOfEj.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
+        });
+        let itemFromEj = copyOfEj.shift();
+        this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, copyOfEj, itemFromEj);
+    }
+
+    async parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, item)
+    {
+        if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+            && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
+        {
+            // Need to copy the item first as otherwise calling moveCursorForwardByOne messes up the ESI in E_i which might need to be used later unchanged.
+            let newEarleyScottItem = new EarleyScottItem(
+                new Production(item.productionOrNT.lhs, item.productionOrNT.rhs.join(" ")), 
+                item.i, 
+                item.w // w is an node reference so it does not need to be copied.
+            );
+            newEarleyScottItem.productionOrNT.moveCursorForwardByOne();
+            let y = this.make_node(newEarleyScottItem.productionOrNT, newEarleyScottItem.i, i, newEarleyScottItem.w, element.w, this._V);
+
+            let newNodeWith_y_asAChild = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
+            
+            // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+            if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
+                && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
+                && innerItem.i == newEarleyScottItem.i && innerItem.w == y))
+            {
+                this._E[i].push(newNodeWith_y_asAChild);
+                this._R.push(newNodeWith_y_asAChild);   
+            }
+            // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
+            // according to Scott's paper. 
+            if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
+            {
+                this._Q.push(newNodeWith_y_asAChild);
+            }
+        }
+        if(queue.length)
+        {
+            let nextItem = queue.shift();
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, nextItem));
+        }
+        else
+        {
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, j+1));
+        }
+    }
+
+    async parseAsync8_CreateNewNode(i)
+    {
+        if(this._Q.length)
+        {
+            this._V = [];
+            let v = new Node(this._tokens[i], i, i + 1, this._terminals, this._nonTerminals);
+            this.parseAsync8_WhileLoop(i, v)
+        }
+        else
+        {
+            this.parseAsync2_mainForLoop(i + 1);
+        }
+    }
+
+    async parseAsync8_WhileLoop(i, v)
+    {
+        let element = this._Q.pop();
+        element.productionOrNT.moveCursorForwardByOne();
+        let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
+        
+        let newEarleyScottItem = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
+        // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+        if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
+        {
+            this._E[i + 1].push(newEarleyScottItem);
+        }
+        if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1]) // Note our token array is 0-based unlike Scott's
+        {
+            this._Qmarked.push(newEarleyScottItem);
+        }
+
+        updateParseStatus(parseStatus, this);
+        parseStatus.parseStatus.incrementLastStepShown();
+        if(this._Q.length)
+        {
+            continueIfAllowed(() => this.parseAsync8_WhileLoop(i, v));
+        }
+        else
+        {
+            continueIfAllowed(() => this.parseAsync2_mainForLoop(i + 1));
+        }
+    }
+
+    async parseAsync9_FinalSuccessCheck()
+    {
+        let arrayOfStartProductions = this._E[this._tokens.length].filter(item => item.productionOrNT.lhs == "S" 
+            && item.productionOrNT.cursorIsAtEnd()
+            && item.i === 0
+            && item.w !== null);
+
+        if(arrayOfStartProductions.length)
+        {
+            return arrayOfStartProductions[0].w;
+        }
+        else
+        {
+            return "FAILURE";
+        }
+    }
+
 
     cloneEarleyScottItem(item)
     {
