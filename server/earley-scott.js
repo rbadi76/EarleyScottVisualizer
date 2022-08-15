@@ -349,8 +349,6 @@ class EarleyScott
         //let v; // Initializing but is not used or given a value until later in the loop.
 
         // NEED ANOTHER FUNCTION HERE FOR THE WHILE LOOP
-
-        let element;
         
         if(this._R.length)
         {
@@ -374,9 +372,15 @@ class EarleyScott
             let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
             if(productionsStartingWithTheNonTerminal.length)
             {
-                 await this.parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, element);
+                console.log('\x1b[31m%s\x1b[0m', "going into parseAsync4_productionStartingWithTheNonTerminal without await.");
+                updateParseStatus(parseStatus, this);
+                parseStatus.parseStatus.incrementLastStepShown();
+                continueIfAllowed(() => this.parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, element));
+                console.log('\x1b[31m%s\x1b[0m', "got out of parseAsync4_productionStartingWithTheNonTerminal without await.");
             }
         }
+
+        // TODO: Split this up.
         if(element.productionOrNT.cursorIsAtEnd())
         {
             updateParseStatus(parseStatus, this);
@@ -401,6 +405,7 @@ class EarleyScott
     
     async parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, originalElement)
     {
+        console.log("Started parseAsync4_productionStartingWithTheNonTerminal.");
         let production = productionsStartingWithTheNonTerminal.shift();
         let newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
         let newEarleyScottItem = new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null);
@@ -433,6 +438,7 @@ class EarleyScott
 
     async parseAsync5_check_H_queue(i, element)
     {
+        console.log("Started parseAsync5_check_H_queue.");
         if(this._H.some(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals))) // Taking out v comparison, no need for that
         {
             let h_elements = this._H.filter(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
@@ -459,6 +465,7 @@ class EarleyScott
 
     async parseAsync6_CursorIsAtEnd(i, element)
     {
+        console.log("Started parseAsync6_CursorIsAtEnd.");
         if(element.w == null)
         {
             let D_node = new Node(element.productionOrNT.lhs, i, i, this._terminals, this._nonTerminals);
@@ -492,17 +499,28 @@ class EarleyScott
 
     async parseAsync7_CursorIsAtEndForLoop(i, element, j)
     {
-        let copyOfEj = [];
-        this._E[j].forEach(item => {
-            let earleyScottItem = this.cloneEarleyScottItem(item);
-            copyOfEj.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
-        });
-        let itemFromEj = copyOfEj.shift();
-        this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, copyOfEj, itemFromEj);
+        console.log("Started parseAsync7_CursorIsAtEndForLoop.");
+        if(j <= i)
+        {
+            let copyOfEj = [];
+            this._E[j].forEach(item => {
+                let earleyScottItem = this.cloneEarleyScottItem(item);
+                copyOfEj.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
+            });
+            let itemFromEj = copyOfEj.shift();
+            this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, copyOfEj, itemFromEj);
+        }
+        else
+        {
+            if(this._R.length) this.parseAsync3_whileLoop(i);
+            else this.parseAsync8_CreateNewNode(i);
+        }
+        
     }
 
     async parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, item)
     {
+        console.log("Started parseAsync7_CursorIsAtEndForLoopItemsInE.");
         if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
             && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
         {
@@ -545,6 +563,7 @@ class EarleyScott
 
     async parseAsync8_CreateNewNode(i)
     {
+        console.log("Started parseAsync8_CreateNewNode.");
         if(this._Q.length)
         {
             this._V = [];
@@ -559,6 +578,7 @@ class EarleyScott
 
     async parseAsync8_WhileLoop(i, v)
     {
+        console.log("Started parseAsync8_WhileLoop.");
         let element = this._Q.pop();
         element.productionOrNT.moveCursorForwardByOne();
         let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
@@ -588,6 +608,7 @@ class EarleyScott
 
     async parseAsync9_FinalSuccessCheck()
     {
+        console.log("Ending - FinalSuccessCheck called.");
         let arrayOfStartProductions = this._E[this._tokens.length].filter(item => item.productionOrNT.lhs == "S" 
             && item.productionOrNT.cursorIsAtEnd()
             && item.i === 0

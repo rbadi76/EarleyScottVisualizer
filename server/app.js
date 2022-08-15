@@ -111,7 +111,7 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
     let respArray = [];
     try
     {
-        console.log("Server getStatus called. This is the beginning.");
+        //console.log("Server getStatus called. This is the beginning.");
         let currentStep = parseStatus.parseStatus.getCurrentStep();
         if(parseStatus.parseStatus.isInStopState())
         {
@@ -127,7 +127,7 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
                     H: parseStatus.parseStatus.H,
             });
             parseStatus.parseStatus.incrementNextStepToShow();
-            console.log("Server getStatus called: New state retrieved.");
+            //console.log("Server getStatus called: New state retrieved.");
         }
         else
         {
@@ -136,7 +136,7 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
                 {   result: 'Algorithm busy', 
                     step: currentStep,
             });
-            console.log("Server getStatus called: No change to parsing.");
+            //console.log("Server getStatus called: No change to parsing.");
         }
 
         return res.status(200).json(respArray);

@@ -12,13 +12,13 @@ let parseStatus = (function(){
         incrementNextStepToShow: function()
         {
             if(nextStepToShow == lastStepShown) nextStepToShow++;
-            console.log("nextStepToShow incremented to " + nextStepToShow);
+            console.log("nextStepToShow incremented to " + nextStepToShow + ". lastStepShown = " + lastStepShown);
         },
 
         incrementLastStepShown: function()
         {
             if(nextStepToShow == lastStepShown + 1) lastStepShown++;
-            console.log("lastStepShown incremented to " + lastStepShown);
+            console.log("lastStepShown incremented to " + lastStepShown + ". nextStepToShow = " + nextStepToShow);
         },
 
         getCurrentStep: function()
@@ -91,7 +91,10 @@ let parseStatus = (function(){
         },
         canContinue: function()
         {
-            if(nextStepToShow == lastStepShown) return false;
+            if(nextStepToShow == lastStepShown)
+            {
+                return false;
+            } 
             else return true;
         },
         isInStopState: function()
