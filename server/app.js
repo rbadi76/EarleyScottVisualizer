@@ -92,20 +92,23 @@ app.post('/api/v1/createParser', (req, res) => {
         console.log(`Got alphabet ${req.body.alphabet}, tokenstring  ${req.body.tokenString} and grammar ${req.body.grammar}`);
 
         let outcome;
-        if(!parseStatus.parseStatus.parsingInProgress)
+        if(!parseStatus.parseStatus.parsingInProgress())
         {
             let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
             //let outcome = earleyScott.parse();
-    
-            outcome = earleyScott.parseAsync1();
+            earleyScott.parseAsync1();
+            outcome = "Parsing started.";
+            respArray.push({ result: outcome});
+            return res.status(201).json(respArray);
         }
         else
         {
-            outcome = "Sorry - parser is busy, please try later.";
+            outcome = "Sorry - parser is busy with another job, please try later.";
+            respArray.push({ result: outcome});
+            return res.status(425).json(respArray);
         }
         
-        respArray.push({ result: outcome});
-        return res.status(200).json(respArray);
+        
     }
     catch(error)
     {
@@ -119,6 +122,15 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
     let respArray = [];
     try
     {
+        if(!parseStatus.parseStatus.parsingInProgress())
+        {
+            respArray.push(
+                {   
+                    result: 'Parsing has not started yet. Plase call createParser first.', 
+                }
+            );
+            return res.status(425).json(respArray);
+        }
         //console.log("Server getStatus called. This is the beginning.");
         let currentStep = parseStatus.parseStatus.getCurrentStep();
         if(parseStatus.parseStatus.isInStopState())
@@ -136,6 +148,7 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
             });
             parseStatus.parseStatus.incrementNextStepToShow();
             //console.log("Server getStatus called: New state retrieved.");
+            return res.status(202).json(respArray);
         }
         else
         {
@@ -145,9 +158,10 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
                     step: currentStep,
             });
             //console.log("Server getStatus called: No change to parsing.");
+            return res.status(425).json(respArray);
         }
 
-        return res.status(200).json(respArray);
+        
     }
     catch(error)
     {

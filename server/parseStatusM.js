@@ -7,6 +7,7 @@ let parseStatus = (function(){
     let Q = [];
     let Qmarked = [];
     let V = [];
+    let parsingStarted = false;
 
     return {
         incrementNextStepToShow: function()
@@ -41,6 +42,7 @@ let parseStatus = (function(){
             V = [];
             Q = [];
             Qmarked = [];
+            parsingStarted = true;
         },
 
         setTotalSteps: function(steps) // Not sure we will use this after all.
@@ -104,12 +106,14 @@ let parseStatus = (function(){
         },
         parsingInProgress: function()
         {
-            if(nextStepToShow > 0 || lastStepShown > 0)
-            {
-                return true;
-            }
+            if(parsingStarted) return true;
             else return false;
+        },
+        setParsingDone: function()
+        {
+            parsingStarted = false;
         }
+
     };
 })();
 

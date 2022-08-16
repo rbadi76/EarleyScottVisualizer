@@ -658,6 +658,7 @@ class EarleyScott
             && item.w !== null);
 
         parseStatus.parseStatus.resetParseStatus();
+        parseStatus.parseStatus.setParsingDone();
         if(arrayOfStartProductions.length)
         {
             console.log(fgGreen + "%s" + reset, "PARSING SUCCESSFUL! (i.e. string was in language of grammar)");
