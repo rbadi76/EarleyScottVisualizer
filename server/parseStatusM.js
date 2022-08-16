@@ -43,7 +43,7 @@ let parseStatus = (function(){
             Qmarked = [];
         },
 
-        setTotalSteps: function(steps)
+        setTotalSteps: function(steps) // Not sure we will use this after all.
         {
             totalSteps = steps;
         },
@@ -100,6 +100,14 @@ let parseStatus = (function(){
         isInStopState: function()
         {
             if(nextStepToShow == lastStepShown) return true;
+            else return false;
+        },
+        parsingInProgress: function()
+        {
+            if(nextStepToShow > 0 || lastStepShown > 0)
+            {
+                return true;
+            }
             else return false;
         }
     };

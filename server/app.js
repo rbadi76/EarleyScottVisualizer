@@ -91,11 +91,19 @@ app.post('/api/v1/createParser', (req, res) => {
 
         console.log(`Got alphabet ${req.body.alphabet}, tokenstring  ${req.body.tokenString} and grammar ${req.body.grammar}`);
 
-        let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
-        //let outcome = earleyScott.parse();
-
-        let outcome = earleyScott.parseAsync1();
-
+        let outcome;
+        if(!parseStatus.parseStatus.parsingInProgress)
+        {
+            let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
+            //let outcome = earleyScott.parse();
+    
+            outcome = earleyScott.parseAsync1();
+        }
+        else
+        {
+            outcome = "Sorry - parser is busy, please try later.";
+        }
+        
         respArray.push({ result: outcome});
         return res.status(200).json(respArray);
     }

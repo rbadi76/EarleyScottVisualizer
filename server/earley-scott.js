@@ -1,28 +1,35 @@
 let parseStatus = require('./parseStatusM');
 
+reset = "\x1b[0m";
+bright = "\x1b[1m";
+dim = "\x1b[2m";
+underscore = "\x1b[4m";
+blink = "\x1b[5m";
+reverse = "\x1b[7m";
+hidden = "\x1b[8m";
+
+fgBlack = "\x1b[30m";
+fgRed = "\x1b[31m";
+fgGreen = "\x1b[32m";
+fgYellow = "\x1b[33m";
+fgBlue = "\x1b[34m";
+fgMagenta = "\x1b[35m";
+fgCyan = "\x1b[36m";
+fgWhite = "\x1b[37m";
+
+bgBlack = "\x1b[40m";
+bgRed = "\x1b[41m";
+bgGreen = "\x1b[42m";
+bgYellow = "\x1b[43m";
+bgBlue = "\x1b[44m";
+bgMagenta = "\x1b[45m";
+bgCyan = "\x1b[46m";
+bgWhite = "\x1b[47m";
+
 function sleep(ms) {
     return new Promise(
         resolve => setTimeout(resolve, ms)
     );
-}
-
-async function continueWhenAllowed(parseStatus, earleyScott)
-{
-    while(!parseStatus.parseStatus.canContinue())
-    {
-        console.log("Cannot continue. Sleeping for 1 sec.");
-        await sleep(1000);
-
-    }
-    console.log("Can continue now. Updating parseStatus.");
-    parseStatus.parseStatus.setE = earleyScott._E;
-    parseStatus.parseStatus.setR = earleyScott._R;
-    parseStatus.parseStatus.setV = earleyScott._V;
-    parseStatus.parseStatus.setQ = earleyScott._Q;
-    parseStatus.parseStatus.setQmarked = earleyScott._Qmarked;
-
-    // put into send
-    parseStatus.parseStatus.incrementLastStepShown();
 }
 
 async function continueIfAllowed(nextFunction)
@@ -101,7 +108,6 @@ class EarleyScott
         this._V = [];        // Queue V initialized, will be and array of Nodes     
         
         parseStatus.parseStatus.resetParseStatus();
-        parseStatus.parseStatus.setTotalSteps(15); // TODO: Set correct number later
         console.log("EarleyScott constructor finished.");
     }
 
@@ -118,14 +124,12 @@ class EarleyScott
             if(esItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || esItem.productionOrNT.cursorIsAtEnd())
             {
                 this._E[0].push(esItem);
-                continueWhenAllowed(parseStatus, this);
                 console.log("Have pushed and continued.");
             }
 
             if(esItem.productionOrNT.cursorIsInFrontOfTerminal(this._terminals) && this._tokens[0] == esItem.productionOrNT.terminalAfterCursor(this._terminals))
             {
                 this._Qmarked.push(esItem);
-                continueWhenAllowed(parseStatus, this);
             }
         });
 
@@ -156,13 +160,11 @@ class EarleyScott
                         {
                             this._E[i].push(newEarleyScottItem);
                             this._R.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
-                            continueWhenAllowed(parseStatus, this);
                         }
                         // Note the difference from original paper here as the array is 0-based but the string is 1-based in paper.
                         if(this._tokens[i] == production.rhs[0] && !this._Q.some(item => item.isEqual(newEarleyScottItem))) 
                         {
                             this._Q.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
-                            continueWhenAllowed(parseStatus, this);
                         }
 
                     });
@@ -178,12 +180,10 @@ class EarleyScott
                         {
                             this._E[i].push(newElement);
                             this._R.push(newElement);
-                            continueWhenAllowed(parseStatus, this);
                         }
                         if(newElement.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's.
                         {
                             this._Q.push(newElement);
-                            continueWhenAllowed(parseStatus, this);
                         }
                     }
                 }
@@ -198,7 +198,6 @@ class EarleyScott
                         {
                             v = D_node;
                             this._V.push(v);
-                            continueWhenAllowed(parseStatus, this);
                         }
                         else
                         {
@@ -210,14 +209,12 @@ class EarleyScott
                         if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
                         {
                             element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
-                            continueWhenAllowed(parseStatus, this);
                         }
 
                     }
                     if(element.i == i)
                     {
                         this._H.push(new H_Item(element.productionOrNT.lhs, element.w));
-                        continueWhenAllowed(parseStatus, this);
                     }
                     for(let j=0; j <= i; j++)
                     {
@@ -243,14 +240,12 @@ class EarleyScott
                                 {
                                     this._E[i].push(newNodeWith_y_asAChild);
                                     this._R.push(newNodeWith_y_asAChild);   
-                                    continueWhenAllowed(parseStatus, this);
                                 }
                                 // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
                                 // according to Scott's paper. 
                                 if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
                                 {
                                     this._Q.push(newNodeWith_y_asAChild);
-                                    continueWhenAllowed(parseStatus, this);
                                 }
                             }
                         });
@@ -273,12 +268,10 @@ class EarleyScott
                 if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                 {
                     this._E[i + 1].push(newEarleyScottItem);
-                    continueWhenAllowed(parseStatus, this);
                 }
                 if(element.productionOrNT.betaAfterCursor[0] == this._tokens[i + 1]) // Note our token array is 0-based unlike Scott's
                 {
                     this._Qmarked.push(newEarleyScottItem);
-                    continueWhenAllowed(parseStatus, this);
                 }
             }
         }
@@ -300,7 +293,7 @@ class EarleyScott
 
     async parseAsync1()
     {
-        console.log("Started parseAsync1 - start with waiting");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync1 - start with waiting");
         if(!parseStatus.parseStatus.canContinue())
         {
             continueIfAllowed(() => this.parseAsync1());
@@ -332,7 +325,7 @@ class EarleyScott
 
     async parseAsync2_mainForLoop(i)
     {
-        console.log("Starting parseAsync2_mainForLoop.");
+        console.log(fgWhite + "%s" + reset, "Starting parseAsync2_mainForLoop. i = " + i);
         if(i > this._tokens.length)
         {
             console.log("For loop has ended. Going ot FinalSuccessCheck.");
@@ -346,14 +339,11 @@ class EarleyScott
         this._R = this._E[i].map(x => this.cloneEarleyScottItem(x)); 
         this._Q = this._Qmarked.map(x => this.cloneEarleyScottItem(x)); 
         this._Qmarked = [];
-        //let v; // Initializing but is not used or given a value until later in the loop.
-
-        // NEED ANOTHER FUNCTION HERE FOR THE WHILE LOOP
         
         if(this._R.length)
         {
             console.log("Going into while loop.");
-            this.parseAsync3_whileLoop(i);
+            this.parseAsync3_whileLoop_if1(i);
         }
         else
         {
@@ -362,9 +352,9 @@ class EarleyScott
         }   
     }
 
-    async parseAsync3_whileLoop(i)
+    async parseAsync3_whileLoop_if1(i)
     {
-        console.log("Started parseAsync3_whileLoop.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync3_whileLoop_if1.");
         let element = this._R.shift();
 
         if(element.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals))
@@ -372,40 +362,45 @@ class EarleyScott
             let productionsStartingWithTheNonTerminal = this._grammar.filter(production => production.lhs == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
             if(productionsStartingWithTheNonTerminal.length)
             {
-                console.log('\x1b[31m%s\x1b[0m', "going into parseAsync4_productionStartingWithTheNonTerminal without await.");
-                updateParseStatus(parseStatus, this);
-                parseStatus.parseStatus.incrementLastStepShown();
-                continueIfAllowed(() => this.parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, element));
-                console.log('\x1b[31m%s\x1b[0m', "got out of parseAsync4_productionStartingWithTheNonTerminal without await.");
+                this.parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, element);
             }
         }
+        else
+        {
+            this.parseAsync3_whileLoop_if2(i, element);
+        }
+    }
 
-        // TODO: Split this up.
+    async parseAsync3_whileLoop_if2(i, element)
+    {
+        console.log(fgWhite + "%s" + reset, "Started parseAsync3_whileLoop_if2.");
         if(element.productionOrNT.cursorIsAtEnd())
         {
-            updateParseStatus(parseStatus, this);
-            parseStatus.parseStatus.incrementLastStepShown();
-            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd(i, element))
+            this.parseAsync6_CursorIsAtEnd_if1(i, element);
         }
+        else
+        {
+            this.parseAsync3_whileLoop_if3(i);
+        }
+    }
 
+    async parseAsync3_whileLoop_if3(i)
+    {
+        console.log(fgWhite + "%s" + reset, "Started parseAsync3_whileLoop_if3.");
         if(this._R.length)
         {
-            updateParseStatus(parseStatus, this);
-            parseStatus.parseStatus.incrementLastStepShown();
-            continueIfAllowed(() => this.parseAsync3_whileLoop(i));
+           this.parseAsync3_whileLoop_if1(i);
         }
         else
         {
             // Go staight to node creation at the bottom.
-            updateParseStatus(parseStatus, this);
-            parseStatus.parseStatus.incrementLastStepShown();
-            continueIfAllowed(() => this.parseAsync8_CreateNewNode(i));
+           this.parseAsync8_CreateNewNode(i);
         }
     }
     
     async parseAsync4_productionStartingWithTheNonTerminal(i, productionsStartingWithTheNonTerminal, originalElement)
     {
-        console.log("Started parseAsync4_productionStartingWithTheNonTerminal.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync4_productionStartingWithTheNonTerminal.");
         let production = productionsStartingWithTheNonTerminal.shift();
         let newProductionWithDotAtBeginning = new Production(production.lhs, "· " + production.rhs.join(" "));
         let newEarleyScottItem = new EarleyScottItem(new Production(newProductionWithDotAtBeginning.lhs, newProductionWithDotAtBeginning.rhs.join(" ")), i, null);
@@ -431,14 +426,14 @@ class EarleyScott
         } 
         else
         {
-            continueIfAllowed(() => this.parseAsync5_check_H_queue(i, originalElement));
+            continueIfAllowed(() => this.parseAsync3_whileLoop_if2(i, originalElement));
         }
 
     }
 
     async parseAsync5_check_H_queue(i, element)
     {
-        console.log("Started parseAsync5_check_H_queue.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync5_check_H_queue.");
         if(this._H.some(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals))) // Taking out v comparison, no need for that
         {
             let h_elements = this._H.filter(h_item => h_item.nonTerminal == element.productionOrNT.nonTerminalAfterCursor(this._nonTerminals));
@@ -457,15 +452,22 @@ class EarleyScott
                 this._Q.push(newElement);
             }
         }
+
+        updateParseStatus(parseStatus, this);
+        parseStatus.parseStatus.incrementLastStepShown();
         if(element.productionOrNT.cursorIsAtEnd())
         {
-            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd(i, originalElement));
+            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_if1(i, originalElement));
+        }
+        else
+        {
+            continueIfAllowed(() => this.parseAsync3_whileLoop_if1(i));
         }
     }
 
-    async parseAsync6_CursorIsAtEnd(i, element)
+    async parseAsync6_CursorIsAtEnd_if1(i, element)
     {
-        console.log("Started parseAsync6_CursorIsAtEnd.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync6_CursorIsAtEnd_if1.");
         if(element.w == null)
         {
             let D_node = new Node(element.productionOrNT.lhs, i, i, this._terminals, this._nonTerminals);
@@ -482,37 +484,75 @@ class EarleyScott
                 v = arr[0];
             }
             element.w = v;
-
-            let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node("eps", null, null, this._terminals, this._nonTerminals));
-            if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
-            {
-                element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
-            }
-
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_innerIf(i, element));
+            
         }
+        else
+        {
+            this.parseAsync6_CursorIsAtEnd_if2(i, element);
+        }
+        
+    }
+
+    async parseAsync6_CursorIsAtEnd_innerIf(i, element)
+    {
+        console.log(fgWhite + "%s" + reset, "Started parseAsync6_CursorIsAtEnd_innerIf.");
+        let unaryFamilyWithEpsilonNode = new UnaryFamily(new Node("eps", null, null, this._terminals, this._nonTerminals));
+        if(!element.w.hasFamily(unaryFamilyWithEpsilonNode))
+        {
+            element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
+
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_if2(i, element));
+        }
+        else
+        {
+            this.parseAsync6_CursorIsAtEnd_if2(i, element);
+        }
+    }
+
+    async parseAsync6_CursorIsAtEnd_if2(i, element)
+    {
+        console.log(fgWhite + "%s" + reset, "Started parseAsync6_CursorIsAtEnd_if2.");
         if(element.i == i)
         {
             this._H.push(new H_Item(element.productionOrNT.lhs, element.w));
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, 0));
         }
-        continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, 0));
+        else
+        {
+            this.parseAsync7_CursorIsAtEndForLoop(i, element, 0);
+        }
     }
 
     async parseAsync7_CursorIsAtEndForLoop(i, element, j)
     {
-        console.log("Started parseAsync7_CursorIsAtEndForLoop.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync7_CursorIsAtEndForLoop.");
         if(j <= i)
         {
-            let copyOfEj = [];
-            this._E[j].forEach(item => {
-                let earleyScottItem = this.cloneEarleyScottItem(item);
-                copyOfEj.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
-            });
-            let itemFromEj = copyOfEj.shift();
-            this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, copyOfEj, itemFromEj);
+            if(this._E[j].length)
+            {
+                let copyOfEj = [];
+                this._E[j].forEach(item => {
+                    let earleyScottItem = this.cloneEarleyScottItem(item);
+                    copyOfEj.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
+                });
+                let itemFromEj = copyOfEj.shift();
+                this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, copyOfEj, itemFromEj);
+            }
+            else
+            {
+                this.parseAsync7_CursorIsAtEndForLoop(i, element, j + 1);
+            }
         }
         else
         {
-            if(this._R.length) this.parseAsync3_whileLoop(i);
+            if(this._R.length) this.parseAsync3_whileLoop_if1(i);
             else this.parseAsync8_CreateNewNode(i);
         }
         
@@ -520,7 +560,7 @@ class EarleyScott
 
     async parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, item)
     {
-        console.log("Started parseAsync7_CursorIsAtEndForLoopItemsInE.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync7_CursorIsAtEndForLoopItemsInE.");
         if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
             && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
         {
@@ -534,7 +574,6 @@ class EarleyScott
             let y = this.make_node(newEarleyScottItem.productionOrNT, newEarleyScottItem.i, i, newEarleyScottItem.w, element.w, this._V);
 
             let newNodeWith_y_asAChild = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
-            
             // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
             if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                 && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
@@ -552,18 +591,22 @@ class EarleyScott
         }
         if(queue.length)
         {
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
             let nextItem = queue.shift();
             continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, nextItem));
         }
         else
         {
+            updateParseStatus(parseStatus, this);
+            parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, j+1));
         }
     }
 
     async parseAsync8_CreateNewNode(i)
     {
-        console.log("Started parseAsync8_CreateNewNode.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync8_CreateNewNode.");
         if(this._Q.length)
         {
             this._V = [];
@@ -578,7 +621,7 @@ class EarleyScott
 
     async parseAsync8_WhileLoop(i, v)
     {
-        console.log("Started parseAsync8_WhileLoop.");
+        console.log(fgWhite + "%s" + reset, "Started parseAsync8_WhileLoop.");
         let element = this._Q.pop();
         element.productionOrNT.moveCursorForwardByOne();
         let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
@@ -614,12 +657,15 @@ class EarleyScott
             && item.i === 0
             && item.w !== null);
 
+        parseStatus.parseStatus.resetParseStatus();
         if(arrayOfStartProductions.length)
         {
+            console.log(fgGreen + "%s" + reset, "PARSING SUCCESSFUL! (i.e. string was in language of grammar)");
             return arrayOfStartProductions[0].w;
         }
         else
         {
+            console.log(fgRed + "%s" + reset, "PARSING FAILED! (i.e. string not in language of grammar)");
             return "FAILURE";
         }
     }
