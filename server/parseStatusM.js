@@ -8,6 +8,18 @@ let parseStatus = (function(){
     let Qmarked = [];
     let V = [];
     let parsingStarted = false;
+    let final = "";
+
+    function getArrayOfStringifiedEarleyItems(orgArray)
+    {
+        let innerArray = [];
+        for(let j = 0; j < orgArray.length; j++)
+        {
+            innerArray.push(orgArray[j].toString())
+        }
+        
+        return innerArray;
+    }
 
     return {
         incrementNextStepToShow: function()
@@ -43,6 +55,7 @@ let parseStatus = (function(){
             Q = [];
             Qmarked = [];
             parsingStarted = true;
+            final = "";
         },
 
         setTotalSteps: function(steps) // Not sure we will use this after all.
@@ -73,7 +86,12 @@ let parseStatus = (function(){
         },
         getE: function()
         {
-            return E;
+            let outerArray = [];
+            for(let i = 0; i < E.length; i++)
+            {
+                outerArray.push(getArrayOfStringifiedEarleyItems(E[i]));
+            }
+            return outerArray;
         },
         getR: function()
         {
@@ -90,6 +108,15 @@ let parseStatus = (function(){
         getQmarked: function()
         {
             return Qmarked;
+        },
+        getFinal: function()
+        {
+            if(final == "FAILURE" || final == "") return final;
+            else
+            {
+                return getArrayOfStringifiedEarleyItems(final);
+            }
+            
         },
         canContinue: function()
         {
@@ -112,7 +139,11 @@ let parseStatus = (function(){
         setParsingDone: function()
         {
             parsingStarted = false;
-        }
+        },
+        setFinal: function(fin)
+        {
+            final = fin;
+        },
 
     };
 })();

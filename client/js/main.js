@@ -60,6 +60,7 @@ function validatePrepareAndSend()
         let errorpanel = document.getElementById("errorpanel");
         errorpanel.setAttribute("hidden", "true");
         reqObj = new RequestObject(alphabetStr, tokenStr, grammarText, areWords);
+        
         sendParseRequest(reqObj);
         
         let queuesAndSets = document.getElementById("queuesAndSets");
@@ -67,9 +68,30 @@ function validatePrepareAndSend()
 
         let mainform = document.getElementById("mainform");
         mainform.setAttribute("hidden", "true");
+
+        let earleySetsRow = document.getElementById("earleySets");
+        for(let i = 0; i < reqObj.tokenStringGetter.length; i++)
+        {
+            let divEi = document.createElement("div");
+            divEi.classList.add("col");
+            divEi.setAttribute("id", "E" + i);
+
+            let h2 = document.createElement("h2");
+            let sub = document.createElement("sub");
+            let textE = document.createTextNode("E");
+            let textNum = document.createTextNode(i);
+
+            sub.append(textNum);
+            h2.append(textE);
+            h2.append(sub);
+            divEi.append(h2);
+
+            earleySetsRow.append(divEi);
+        }
     }
 
 }
+let parsingDone = false;
 
 function sendParseRequest(reqObj)
 {
@@ -82,11 +104,14 @@ function sendParseRequest(reqObj)
         "grammar": reqObj.grammar
     })
         .then(function (response) {
-            //When successful, print 'Success: ' and the received data
-            if(response.data[0].result == 'OK')
-            {
-                alert("Parsing done!");  
-            }
+            let infopanel = document.getElementById("infopanel");
+            let p = document.createElement("p");
+            let text = document.createTextNode("Parsing started.");
+            p.append(text)
+            p.classList.add("text-center");
+            infopanel.appendChild(p);
+            infopanel.removeAttribute("hidden");
+                    
         })
         .catch(function (error) {
             //When unsuccessful, print the error.
@@ -97,9 +122,50 @@ function sendParseRequest(reqObj)
             p.classList.add("text-center");
             errorpanel.appendChild(p);
             errorpanel.removeAttribute("hidden")
+            parsingDone = true;
+        })
+        .then(function(){
+            //console.log("Last then in axios post.");
+            setTimeout(() => getStatus(0, 1000), 1000);
         });
 }
 
+function getStatus(step, ms)
+{
+    console.log("Get status called");
+    //Perform an AJAX POST request to the url
+    axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
+        .then(function (response) {
+            console.log(response);
+            if(response.data[0].Final == "") 
+            {
+                setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
+                populateEs(response.data[0].E);
+            }
+            else
+            {
+                console.log("Done.");
+            }
+        })
+        .catch(function (error) {
+            if(error.response.status && error.response.status == 425)
+            {
+                console.log(error.response.result);
+                setTimeout(() => getStatus(step, ms * 2), ms * 2);
+                return;
+            }
+
+            //When unsuccessful, print the error.
+            console.log(error.response);
+            let errorpanel = document.getElementById("errorpanel");
+            let p = document.createElement("p");
+            let text = document.createTextNode(error);
+            p.append(text);
+            p.classList.add("text-center");
+            errorpanel.appendChild(p);
+            errorpanel.removeAttribute("hidden")
+        });
+}
 
 
 function showErrorMessage(message)
@@ -249,6 +315,30 @@ class RequestObject
             });
             this.grammar.push(newArray);
         });
+    }
 
+    get tokenStringGetter()
+    {
+        return this.tokenString;
+    }
+
+    set tokenStringSetter(str)
+    {
+        this.tokenString = str;
+    }
+}
+
+function populateEs(theArray)
+{
+    for(let i = 0; i <= theArray.length; i++)
+    {
+        let Ei = document.getElementById("E" + i);
+        for(let j = 0; j < theArray[i].length; j++)
+        {
+            let p = document.createElement("p");
+            let text = document.createTextNode(theArray[i][j]);
+            p.append(text);
+            Ei.appendChild(p);
+        }
     }
 }

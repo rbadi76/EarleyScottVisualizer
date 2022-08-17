@@ -49,11 +49,11 @@ async function continueIfAllowed(nextFunction)
 
 function updateParseStatus(parseStatus, earleyScott)
 {
-    parseStatus.parseStatus.setE = earleyScott._E;
-    parseStatus.parseStatus.setR = earleyScott._R;
-    parseStatus.parseStatus.setV = earleyScott._V;
-    parseStatus.parseStatus.setQ = earleyScott._Q;
-    parseStatus.parseStatus.setQmarked = earleyScott._Qmarked;
+    parseStatus.parseStatus.setE(earleyScott._E);
+    parseStatus.parseStatus.setR(earleyScott._R);
+    parseStatus.parseStatus.setV(earleyScott._V);
+    parseStatus.parseStatus.setQ(earleyScott._Q);
+    parseStatus.parseStatus.setQmarked(earleyScott._Qmarked);
 }
 
 
@@ -657,16 +657,20 @@ class EarleyScott
             && item.i === 0
             && item.w !== null);
 
-        parseStatus.parseStatus.resetParseStatus();
-        parseStatus.parseStatus.setParsingDone();
+        //parseStatus.parseStatus.resetParseStatus();
+        //parseStatus.parseStatus.setParsingDone();
         if(arrayOfStartProductions.length)
         {
             console.log(fgGreen + "%s" + reset, "PARSING SUCCESSFUL! (i.e. string was in language of grammar)");
+            parseStatus.parseStatus.setFinal(arrayOfStartProductions);
+            parseStatus.parseStatus.incrementLastStepShown();
             return arrayOfStartProductions[0].w;
         }
         else
         {
             console.log(fgRed + "%s" + reset, "PARSING FAILED! (i.e. string not in language of grammar)");
+            parseStatus.parseStatus.setFinal("FAILURE");
+            parseStatus.parseStatus.incrementLastStepShown();
             return "FAILURE";
         }
     }
@@ -823,6 +827,18 @@ class EarleyScottItem
         }
         
         return false;
+    }
+
+    toString()
+    {
+        if(this._productionOrNT instanceof Production)
+        {
+            return "(" + this.productionOrNT.lhs + " ::= " + this.productionOrNT.rhs.join("") + ", " + this.i + ")";
+        }
+        else
+        {
+            return "(" + this.productionOrNT + ", " + this.i + ")";
+        }
     }
 }
 

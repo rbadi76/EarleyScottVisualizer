@@ -10,6 +10,7 @@
         <title>Earley-Scott Visualization</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="shortcut icon" href="#">
         <!--<link rel="stylesheet" href="">-->
         <!-- CSS only -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
@@ -23,6 +24,10 @@
 
             <div id="errorpanel" class="alert alert-danger" hidden>
                 <h2 class="text-center">Error</h2>
+            </div>
+
+            <div id="infopanel" class="alert" hidden>
+                <h2 class="text-center">Notification</h2>
             </div>
 
 
@@ -77,11 +82,11 @@
                     <div class="col"><h2>Earley sets</h2></div>
                 </div>
                 <!-- Add rows and coluns dynamically. For each i add a column up to 12, then start a new row for the next 12 etc. -->
-                <div class="row"> <!-- REMOVE LATER - Adding this row and child columns for testing.-->
-                    <div class="col">E0</div>
+                <div class="row" id="earleySets"> <!-- REMOVE LATER - Adding this row and child columns for testing.-->
+                    <!--<div class="col">E0</div>
                     <div class="col">E1</div>
                     <div class="col">E2</div>
-                    <div class="col">E3</div>
+                    <div class="col">E3</div>-->
                 </div>
                 <div class="row">
                     <div class="col">V</div>

@@ -140,13 +140,19 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
             respArray.push(
                 {   result: 'Parsing updated', 
                     step: currentStep,
-                    Q: parseStatus.parseStatus.Q,
-                    R: parseStatus.parseStatus.R,
-                    V: parseStatus.parseStatus.V,
-                    Qmarked: parseStatus.parseStatus.Qmarked,
-                    H: parseStatus.parseStatus.H,
+                    //Q: parseStatus.parseStatus.getQ(),
+                    //R: parseStatus.parseStatus.getR(),
+                    //V: parseStatus.parseStatus.getV(),
+                    //Qmarked: parseStatus.parseStatus.getQmarked(),
+                    E: parseStatus.parseStatus.getE(),
+                    Final: parseStatus.parseStatus.getFinal()
             });
             parseStatus.parseStatus.incrementNextStepToShow();
+            if(parseStatus.parseStatus.getFinal() != "")
+            {
+                parseStatus.parseStatus.setParsingDone();
+                //parseStatus.parseStatus.resetParseStatus();
+            }
             //console.log("Server getStatus called: New state retrieved.");
             return res.status(202).json(respArray);
         }
@@ -160,8 +166,6 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
             //console.log("Server getStatus called: No change to parsing.");
             return res.status(425).json(respArray);
         }
-
-        
     }
     catch(error)
     {
