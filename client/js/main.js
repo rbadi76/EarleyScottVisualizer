@@ -105,11 +105,22 @@ function sendParseRequest(reqObj)
     })
         .then(function (response) {
             let infopanel = document.getElementById("infopanel");
+            // Parsing started
             let p = document.createElement("p");
             let text = document.createTextNode("Parsing started.");
             p.append(text)
             p.classList.add("text-center");
+
+            // Step counter
+            let pStep = document.createElement("p");
+            let textStep = document.createTextNode("Step 0");
+            pStep.append(textStep)
+            pStep.classList.add("text-center");
+            pStep.setAttribute("id", "stepCount");
+
+            // Append elements
             infopanel.appendChild(p);
+            infopanel.appendChild(pStep);
             infopanel.removeAttribute("hidden");
                     
         })
@@ -150,11 +161,16 @@ function getStatus(step, ms)
             if(response.data[0].Final == "") 
             {
                 timeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
+
+                let pStep = document.getElementById("stepCount");
+                pStep.textContent = "Step " + step;
+
                 populateEarleySets(response.data[0].E);
-                populateTheUppserSets('Qset', response.data[0].Q);
-                populateTheUppserSets('QmarkedSet', response.data[0].Qmarked);
-                populateTheUppserSets('Rset', response.data[0].R);
-                //populateTheUppserSets('Hset', response.data[0].H);
+                populateOtherSets('Qset', response.data[0].Q);
+                populateOtherSets('QmarkedSet', response.data[0].Qmarked);
+                populateOtherSets('Rset', response.data[0].R);
+                populateOtherSets('Vset', response.data[0].V);
+                populateOtherSets('Hset', response.data[0].H);
             }
             else
             {
@@ -378,7 +394,7 @@ function populateEarleySets(theArrayOfArrays)
     }
 }
 
-function populateTheUppserSets(id, theArray)
+function populateOtherSets(id, theArray)
 {
     let rset = document.getElementById(id);
 

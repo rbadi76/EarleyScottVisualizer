@@ -53,6 +53,7 @@ function updateParseStatus(parseStatus, earleyScott)
     parseStatus.parseStatus.setR(earleyScott._R);
     parseStatus.parseStatus.setV(earleyScott._V);
     parseStatus.parseStatus.setQ(earleyScott._Q);
+    parseStatus.parseStatus.setH(earleyScott._H);
     parseStatus.parseStatus.setQmarked(earleyScott._Qmarked);
 }
 
@@ -103,10 +104,11 @@ class EarleyScott
         this._tokens.forEach(token => { this._E.push([])}); // First we create N number of items
         this._E.push([]); // ... and then add one.
 
-        this._R = [];        // Queue R initialized, will be and array of EarleyScottItem-objects
-        this._Q = [];        // Queue Q initialized, will be and array of EarleyScottItem-objects
-        this._Qmarked = [];  // Queue Q' initialized, will be and array of EarleyScottItem-objects
-        this._V = [];        // Queue V initialized, will be and array of Nodes     
+        this._R = [];        // Queue R initialized, will be an array of EarleyScottItem-objects
+        this._Q = [];        // Queue Q initialized, will be an array of EarleyScottItem-objects
+        this._Qmarked = [];  // Queue Q' initialized, will be an array of EarleyScottItem-objects
+        this._V = [];        // Queue V initialized, will be an array of Nodes
+        this._H = [];        // Queue H initialized, will be an array of H_items. Unlike original we initialize here so array will not be empty in parseStatus.
         
         parseStatus.parseStatus.resetParseStatus();
         console.log("EarleyScott constructor finished.");
@@ -137,7 +139,7 @@ class EarleyScott
         for(let i = 0; i <= this._tokens.length; i++){
             
             // Initialize the queues
-            this._H = [];
+            this._H = []; // Initialize this again here according to original code.
             this._R = this._E[i].map(x => this.cloneEarleyScottItem(x)); 
             this._Q = this._Qmarked.map(x => this.cloneEarleyScottItem(x)); 
             this._Qmarked = [];
@@ -608,10 +610,10 @@ class EarleyScott
     async parseAsync8_CreateNewNode(i)
     {
         console.log(fgWhite + "%s" + reset, "Started parseAsync8_CreateNewNode.");
+        this._V = [];
+        let v = new Node(this._tokens[i], i, i + 1, this._terminals, this._nonTerminals);
         if(this._Q.length)
         {
-            this._V = [];
-            let v = new Node(this._tokens[i], i, i + 1, this._terminals, this._nonTerminals);
             this.parseAsync8_WhileLoop(i, v)
         }
         else
@@ -1104,6 +1106,11 @@ class Node
             throw new Error("Unexpected error");
         }
     }
+
+    toString()
+    {
+        return "(" + this.label_1 + ", " + this._startIndex + ", " + this._endIndex + ")";
+    }
 }
 
 class UnaryFamily
@@ -1137,8 +1144,8 @@ class H_Item
 {
     constructor(nonTerminal, node)
     {
-        this._nonTerminal;
-        this._node;
+        this._nonTerminal = nonTerminal;
+        this._node = node;
     }
 
     get nonTerminal()
@@ -1149,6 +1156,11 @@ class H_Item
     get node()
     {
         return this._node;
+    }
+
+    toString()
+    {
+        return "(" + this._nonTerminal + "," + this._node.toString() + ")";
     }
 }
 

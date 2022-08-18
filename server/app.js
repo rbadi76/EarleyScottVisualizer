@@ -142,10 +142,10 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
                     step: currentStep,
                     Q: parseStatus.parseStatus.getQ(),
                     R: parseStatus.parseStatus.getR(),
-                    //V: parseStatus.parseStatus.getV(),
+                    V: parseStatus.parseStatus.getV(),
                     Qmarked: parseStatus.parseStatus.getQmarked(),
                     E: parseStatus.parseStatus.getE(),
-                    //H: parseStatus.parseStatus.getH(),
+                    H: parseStatus.parseStatus.getH(),
                     Final: parseStatus.parseStatus.getFinal()
             });
             parseStatus.parseStatus.incrementNextStepToShow();

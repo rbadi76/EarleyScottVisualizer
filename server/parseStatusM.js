@@ -7,10 +7,11 @@ let parseStatus = (function(){
     let Q = [];
     let Qmarked = [];
     let V = [];
+    let H = [];
     let parsingStarted = false;
     let final = "";
 
-    function getArrayOfStringifiedEarleyItems(orgArray)
+    function getArrayOfStringifiedItems(orgArray)
     {
         let innerArray = [];
         for(let j = 0; j < orgArray.length; j++)
@@ -18,6 +19,16 @@ let parseStatus = (function(){
             innerArray.push(orgArray[j].toString())
         }
         
+        return innerArray;
+    }
+
+    function getArrayOfStringifiedNodes(nodeArray)
+    {
+        let innerArray = [];
+        for(let j = 0; j < nodeArray.length; j++)
+        {
+            innerArray.push(nodeArray[j].toString());
+        }
         return innerArray;
     }
 
@@ -84,41 +95,45 @@ let parseStatus = (function(){
         {
             Qmarked = qmarked;
         },
+        setH: function(h)
+        {
+            H = h;
+        },
         getE: function()
         {
             let outerArray = [];
             for(let i = 0; i < E.length; i++)
             {
-                outerArray.push(getArrayOfStringifiedEarleyItems(E[i]));
+                outerArray.push(getArrayOfStringifiedItems(E[i]));
             }
             return outerArray;
         },
         getR: function()
         {
-            return getArrayOfStringifiedEarleyItems(R);
+            return getArrayOfStringifiedItems(R);
         },
         getV: function()
         {
-            return V;
+            return getArrayOfStringifiedItems(V);
         },
         getQ: function()
         {
-            return getArrayOfStringifiedEarleyItems(Q);
+            return getArrayOfStringifiedItems(Q);
         },
         getQmarked: function()
         {
-            return getArrayOfStringifiedEarleyItems(Qmarked);
+            return getArrayOfStringifiedItems(Qmarked);
         },
-        /*getH: function()
+        getH: function()
         {
-            return getArrayOfStringifiedEarleyItems(H);
-        },*/
+            return getArrayOfStringifiedItems(H);
+        },
         getFinal: function()
         {
             if(final == "FAILURE" || final == "") return final;
             else
             {
-                return getArrayOfStringifiedEarleyItems(final);
+                return getArrayOfStringifiedItems(final);
             }
             
         },
