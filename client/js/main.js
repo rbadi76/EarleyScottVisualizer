@@ -70,7 +70,7 @@ function validatePrepareAndSend()
         mainform.setAttribute("hidden", "true");
 
         let earleySetsRow = document.getElementById("earleySets");
-        for(let i = 0; i < reqObj.tokenStringGetter.length; i++)
+        for(let i = 0; i <= reqObj.tokenStringGetter.length; i++) // here we want to have one more earley sets than the length so i <= is correct here
         {
             let divEi = document.createElement("div");
             divEi.classList.add("col");
@@ -114,6 +114,14 @@ function sendParseRequest(reqObj)
                     
         })
         .catch(function (error) {
+
+            if(error.hasOwnProperty('response') && error.response.hasOwnProperty('status') && error.response.status == 425)
+            {
+                console.log(error.response.result);
+                setTimeout(() => getStatus(0, 1000), 1000);
+                return;
+            }
+
             //When unsuccessful, print the error.
             let errorpanel = document.getElementById("errorpanel");
             let p = document.createElement("p");
@@ -134,29 +142,39 @@ function getStatus(step, ms)
 {
     console.log("Get status called");
     //Perform an AJAX POST request to the url
+
+    let timeout;
     axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
         .then(function (response) {
             console.log(response);
             if(response.data[0].Final == "") 
             {
-                setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
-                populateEs(response.data[0].E);
+                timeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
+                populateEarleySets(response.data[0].E);
+                populateTheUppserSets('Qset', response.data[0].Q);
+                populateTheUppserSets('QmarkedSet', response.data[0].Qmarked);
+                populateTheUppserSets('Rset', response.data[0].R);
+                //populateTheUppserSets('Hset', response.data[0].H);
             }
             else
             {
                 console.log("Done.");
             }
         })
-        .catch(function (error) {
-            if(error.response.status && error.response.status == 425)
+        .catch(function (error) {   
+
+            if(error.hasOwnProperty('response') && error.response.hasOwnProperty('status') && error.response.status == 425)
             {
                 console.log(error.response.result);
+                console.log("Lengthening time to " + ms * 2 + "ms.");
                 setTimeout(() => getStatus(step, ms * 2), ms * 2);
                 return;
             }
 
+            clearTimeout(timeout);
+
             //When unsuccessful, print the error.
-            console.log(error.response);
+            console.log(error);
             let errorpanel = document.getElementById("errorpanel");
             let p = document.createElement("p");
             let text = document.createTextNode(error);
@@ -328,17 +346,54 @@ class RequestObject
     }
 }
 
-function populateEs(theArray)
+function populateEarleySets(theArrayOfArrays)
 {
-    for(let i = 0; i <= theArray.length; i++)
+    if(theArrayOfArrays.length == 0) 
+    {
+        // The algorithm is in its early stages and therefor empty.
+        return;
+    }
+
+    for(let i = 0; i < theArrayOfArrays.length; i++) // Here we have the correct length from the parser so i < is correct.
     {
         let Ei = document.getElementById("E" + i);
-        for(let j = 0; j < theArray[i].length; j++)
+
+        // Start with deleting old elements
+        let children = Ei.childNodes;
+        for(let k = children.length - 1; k > -1; k--)
+        {
+            if(children[k].nodeName == "P")
+            {
+                Ei.removeChild(children[k]);
+            }
+        }
+
+        for(let j = 0; j < theArrayOfArrays[i].length; j++)
         {
             let p = document.createElement("p");
-            let text = document.createTextNode(theArray[i][j]);
+            let text = document.createTextNode(theArrayOfArrays[i][j]);
             p.append(text);
             Ei.appendChild(p);
         }
+    }
+}
+
+function populateTheUppserSets(id, theArray)
+{
+    let rset = document.getElementById(id);
+
+    // Start with deleting old elements
+    let children = rset.childNodes;
+    for(let k = children.length - 1; k > 0; k--)
+    {
+        rset.removeChild(children[k]);
+    }
+
+    for(let j = 0; j < theArray.length; j++)
+    {
+        let span = document.createElement("span");
+        let text = document.createTextNode(theArray[j]);
+        span.append(text);
+        rset.appendChild(span);
     }
 }

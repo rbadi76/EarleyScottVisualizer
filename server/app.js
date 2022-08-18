@@ -140,11 +140,12 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
             respArray.push(
                 {   result: 'Parsing updated', 
                     step: currentStep,
-                    //Q: parseStatus.parseStatus.getQ(),
-                    //R: parseStatus.parseStatus.getR(),
+                    Q: parseStatus.parseStatus.getQ(),
+                    R: parseStatus.parseStatus.getR(),
                     //V: parseStatus.parseStatus.getV(),
-                    //Qmarked: parseStatus.parseStatus.getQmarked(),
+                    Qmarked: parseStatus.parseStatus.getQmarked(),
                     E: parseStatus.parseStatus.getE(),
+                    //H: parseStatus.parseStatus.getH(),
                     Final: parseStatus.parseStatus.getFinal()
             });
             parseStatus.parseStatus.incrementNextStepToShow();
@@ -174,6 +175,9 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
         return res.status(500).json(respArray);
     }
 });
+
+// TODO: write cancel function in case of error to be called by cach functions in client.
+
    
 app.listen(port, () => {
     console.log(`EarleyScottVisualizer server listening on port ${port}`)

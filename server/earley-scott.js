@@ -104,6 +104,7 @@ class EarleyScott
         this._E.push([]); // ... and then add one.
 
         this._R = [];        // Queue R initialized, will be and array of EarleyScottItem-objects
+        this._Q = [];        // Queue Q initialized, will be and array of EarleyScottItem-objects
         this._Qmarked = [];  // Queue Q' initialized, will be and array of EarleyScottItem-objects
         this._V = [];        // Queue V initialized, will be and array of Nodes     
         

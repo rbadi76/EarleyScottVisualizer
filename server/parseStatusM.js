@@ -95,7 +95,7 @@ let parseStatus = (function(){
         },
         getR: function()
         {
-            return R;
+            return getArrayOfStringifiedEarleyItems(R);
         },
         getV: function()
         {
@@ -103,12 +103,16 @@ let parseStatus = (function(){
         },
         getQ: function()
         {
-            return Q;
+            return getArrayOfStringifiedEarleyItems(Q);
         },
         getQmarked: function()
         {
-            return Qmarked;
+            return getArrayOfStringifiedEarleyItems(Qmarked);
         },
+        /*getH: function()
+        {
+            return getArrayOfStringifiedEarleyItems(H);
+        },*/
         getFinal: function()
         {
             if(final == "FAILURE" || final == "") return final;
