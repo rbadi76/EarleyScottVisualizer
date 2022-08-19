@@ -10,6 +10,7 @@ let parseStatus = (function(){
     let H = [];
     let parsingStarted = false;
     let final = "";
+    let abort = false;
 
     function getArrayOfStringifiedItems(orgArray)
     {
@@ -67,6 +68,7 @@ let parseStatus = (function(){
             Qmarked = [];
             parsingStarted = true;
             final = "";
+            abort = false;
         },
 
         setTotalSteps: function(steps) // Not sure we will use this after all.
@@ -139,7 +141,7 @@ let parseStatus = (function(){
         },
         canContinue: function()
         {
-            if(nextStepToShow == lastStepShown)
+            if(nextStepToShow == lastStepShown && !abort)
             {
                 return false;
             } 
@@ -163,7 +165,10 @@ let parseStatus = (function(){
         {
             final = fin;
         },
-
+        abort: function() // Effectively lets the algorithm run it's course and finish.
+        {
+            abort = true;
+        }
     };
 })();
 

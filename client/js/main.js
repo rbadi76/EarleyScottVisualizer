@@ -70,8 +70,20 @@ function validatePrepareAndSend()
         mainform.setAttribute("hidden", "true");
 
         let earleySetsRow = document.getElementById("earleySets");
-        for(let i = 0; i <= reqObj.tokenStringGetter.length; i++) // here we want to have one more earley sets than the length so i <= is correct here
+
+        // Start with deleting old elements
+        let children = earleySetsRow.childNodes;
+        if(children.length > 0)
         {
+            for(let k = children.length - 1; k > -1; k--)
+            {
+                earleySetsRow.removeChild(children[k]);
+            }
+        }
+
+        for(let i = 0; i <= reqObj.tokenStringGetter.length; i++) // here we want to have one more earley sets than the length so i <= is correct here
+        { 
+            // TODO: Handle nicely when we have strings of more than length 12 - currently we can have max 12 within the bootstrap layout.
             let divEi = document.createElement("div");
             divEi.classList.add("col");
             divEi.setAttribute("id", "E" + i);
@@ -104,14 +116,15 @@ function sendParseRequest(reqObj)
         "grammar": reqObj.grammar
     })
         .then(function (response) {
+
+            // Initialize infopanel
             let infopanel = document.getElementById("infopanel");
-            // Parsing started
             let p = document.createElement("p");
             let text = document.createTextNode("Parsing started.");
             p.append(text)
             p.classList.add("text-center");
 
-            // Step counter
+            // Create the step counter
             let pStep = document.createElement("p");
             let textStep = document.createTextNode("Step 0");
             pStep.append(textStep)
@@ -121,7 +134,34 @@ function sendParseRequest(reqObj)
             // Append elements
             infopanel.appendChild(p);
             infopanel.appendChild(pStep);
-            infopanel.removeAttribute("hidden");
+
+            // Show tokens and grammar
+            let tokensCol = document.getElementById("tokens2");
+            let grammarCol = document.getElementById("grammar2");
+            let pTokens = document.createElement("p");
+            let textTokens = document.createTextNode(reqObj.tokenString.join(" "));
+            pTokens.append(textTokens);
+            tokensCol.appendChild(pTokens);
+
+            reqObj.grammarGetter.forEach(production => {
+                let pProduction = document.createElement("p");
+                pProduction.classList.add("mb-1");
+                let rewrittenProduction;
+                production.forEach((item, ix) => {
+                    let noSpaceItem = item.split(" ").join("");
+                    if(ix == 0) rewrittenProduction = noSpaceItem + " ::= ";
+                    else 
+                    {
+                        if(ix == production.length - 1) rewrittenProduction += noSpaceItem;
+                        else rewrittenProduction += noSpaceItem + "|";
+                    }
+                });
+                let textProduction = document.createTextNode(rewrittenProduction);
+                pProduction.append(textProduction);
+                grammarCol.appendChild(pProduction);
+            });
+
+
                     
         })
         .catch(function (error) {
@@ -158,12 +198,12 @@ function getStatus(step, ms)
     axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
         .then(function (response) {
             console.log(response);
+            let pStep = document.getElementById("stepCount");
             if(response.data[0].Final == "") 
             {
                 timeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
 
-                let pStep = document.getElementById("stepCount");
-                pStep.textContent = "Step " + step;
+                if(pStep) pStep.textContent = "Step " + step;
 
                 populateEarleySets(response.data[0].E);
                 populateOtherSets('Qset', response.data[0].Q);
@@ -174,6 +214,15 @@ function getStatus(step, ms)
             }
             else
             {
+                pStep.textContent = "Step " + step;
+
+                let infopanel = document.getElementById("infopanel");
+                // Parsing started
+                let p = document.createElement("p");
+                let text = document.createTextNode("Parsing done. Result: " + response.data[0].Final);
+                p.append(text)
+                p.classList.add("text-center");
+                infopanel.appendChild(p);
                 console.log("Done.");
             }
         })
@@ -360,6 +409,11 @@ class RequestObject
     {
         this.tokenString = str;
     }
+
+    get grammarGetter()
+    {
+        return this.grammar;
+    }
 }
 
 function populateEarleySets(theArrayOfArrays)
@@ -375,12 +429,15 @@ function populateEarleySets(theArrayOfArrays)
         let Ei = document.getElementById("E" + i);
 
         // Start with deleting old elements
-        let children = Ei.childNodes;
-        for(let k = children.length - 1; k > -1; k--)
+        if(Ei.childNodes)
         {
-            if(children[k].nodeName == "P")
+            let children = Ei.childNodes;
+            for(let k = children.length - 1; k > -1; k--)
             {
-                Ei.removeChild(children[k]);
+                if(children[k].nodeName == "P")
+                {
+                    Ei.removeChild(children[k]);
+                }
             }
         }
 
@@ -412,4 +469,23 @@ function populateOtherSets(id, theArray)
         span.append(text);
         rset.appendChild(span);
     }
+}
+
+function abort()
+{
+    //Perform an AJAX POST request to the url
+    axios.delete(window.esvServiceUrl + '/api/v1/abort')
+        .then(function (response) {
+            alert(response.data[0].result);
+    
+            let mainform = document.getElementById("mainform");
+            mainform.removeAttribute("hidden");
+
+            let queuesAndSets = document.getElementById("queuesAndSets");
+            queuesAndSets.setAttribute("hidden", "true");
+        })
+        .catch(function (error) {
+            //When unsuccessful, print the error.
+            showErrorMessage(error);
+        });
 }

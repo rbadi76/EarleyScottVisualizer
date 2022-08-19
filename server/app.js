@@ -118,6 +118,22 @@ app.post('/api/v1/createParser', (req, res) => {
     }
 });
 
+app.delete('/api/v1/abort', (req, res) => {
+    let respArray = [];
+    try{
+        parseStatus.parseStatus.abort();
+        outcome = "Parsing aborted, or rather is allowed to finish quickly.";
+        respArray.push({ result: outcome});
+        return res.status(201).json(respArray);
+    }
+    catch(error)
+    {
+        console.log(error);
+        respArray.push({ result: 'Error', error: 'Internal server error'});
+        return res.status(500).json(respArray);
+    }
+});
+
 app.get('/api/v1/getStatus/:step', (req, res) => {
     let respArray = [];
     try

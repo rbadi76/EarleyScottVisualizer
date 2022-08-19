@@ -953,6 +953,11 @@ class Production
         if(this._lhs === production.lhs && this._rhs === production.rhs.join(" ")) return true;
         else return false;
     }
+
+    toString()
+    {
+        return "(" + this._lhs + " ::= " + this._rhs + ")";
+    }
 }
 
 class Node
