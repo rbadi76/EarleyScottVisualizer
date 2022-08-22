@@ -11,6 +11,10 @@ const helpTextGrammarWords = "Create grammar on the form S => word1 word2 | word
                              + " single uppercase characters are non-terminals if found on LHS" 
                              + " of a production.";
 
+let readyToParse = true;    // To know how to continue (Start again if done or continue when in middle of parsing)
+let timeout;        // To know what timeout to send to clearTimeout when pausing
+let currentStep;    // To know what step number to send to getStatus after pausing
+
 window.addEventListener("load", () => {
     document.getElementById("alphabet").setAttribute("placeholder", helpTextAlphabetLetters);
     document.getElementById("tokens").setAttribute("placeholder", helpTextTokensLetters);
@@ -69,6 +73,11 @@ function validatePrepareAndSend()
         let mainform = document.getElementById("mainform");
         mainform.setAttribute("hidden", "true");
 
+        let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
+        continueOrStartButton.textContent = "Continue";
+        continueOrStartButton.disabled = true;
+        readyToParse = false;
+
         let earleySetsRow = document.getElementById("earleySets");
 
         // Start with deleting old elements
@@ -119,6 +128,10 @@ function sendParseRequest(reqObj)
 
             // Initialize infopanel
             let infopanel = document.getElementById("infopanel");
+
+            // Remove old items
+            removeOldItems(infopanel, "P");
+
             let p = document.createElement("p");
             let text = document.createTextNode("Parsing started.");
             p.append(text)
@@ -138,6 +151,11 @@ function sendParseRequest(reqObj)
             // Show tokens and grammar
             let tokensCol = document.getElementById("tokens2");
             let grammarCol = document.getElementById("grammar2");
+
+            // Remove old items
+            removeOldItems(tokensCol, "P");
+            removeOldItems(grammarCol, "P");
+
             let pTokens = document.createElement("p");
             let textTokens = document.createTextNode(reqObj.tokenString.join(" "));
             pTokens.append(textTokens);
@@ -160,6 +178,9 @@ function sendParseRequest(reqObj)
                 pProduction.append(textProduction);
                 grammarCol.appendChild(pProduction);
             });
+
+            let abortButton = document.getElementById("btnAbort")
+            abortButton.disabled = false;
 
 
                     
@@ -194,7 +215,6 @@ function getStatus(step, ms)
     console.log("Get status called");
     //Perform an AJAX POST request to the url
 
-    let timeout;
     axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
         .then(function (response) {
             console.log(response);
@@ -204,6 +224,7 @@ function getStatus(step, ms)
                 timeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
 
                 if(pStep) pStep.textContent = "Step " + step;
+                currentStep = step;
 
                 populateEarleySets(response.data[0].E);
                 populateOtherSets('Qset', response.data[0].Q);
@@ -224,6 +245,14 @@ function getStatus(step, ms)
                 p.classList.add("text-center");
                 infopanel.appendChild(p);
                 console.log("Done.");
+
+                let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
+                continueOrStartButton.textContent = "Start again";
+                continueOrStartButton.disabled = false;
+                readyToParse = true;
+
+                let abortButton = document.getElementById("btnAbort")
+                abortButton.disabled = true;
             }
         })
         .catch(function (error) {   
@@ -249,7 +278,6 @@ function getStatus(step, ms)
             errorpanel.removeAttribute("hidden")
         });
 }
-
 
 function showErrorMessage(message)
 {
@@ -488,4 +516,48 @@ function abort()
             //When unsuccessful, print the error.
             showErrorMessage(error);
         });
+}
+
+function cont()
+{
+    if(readyToParse) // Parsing is done, we want to go again
+    {
+        // Go back to the form
+        let queuesAndSets = document.getElementById("queuesAndSets");
+        queuesAndSets.setAttribute("hidden", "true");
+
+        let mainform = document.getElementById("mainform");
+        mainform.removeAttribute("hidden");
+    }
+    else // We were parsing but paused
+    {
+        // Continue with the parsing
+        timeout = setTimeout(() => getStatus(currentStep + 1, 1000), 1000);
+
+    }
+}
+
+function pause()
+{
+    clearTimeout(timeout);
+    let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
+    continueOrStartButton.textContent = "Continue";
+    continueOrStartButton.disabled = false;
+}
+
+function removeOldItems(parent, typeToRemove)
+{
+    // Start with deleting old elements
+    if(parent.childNodes)
+    {
+        let children = parent.childNodes;
+        for(let k = children.length - 1; k > -1; k--)
+        {
+            if(children[k].nodeName == typeToRemove)
+            {
+                parent.removeChild(children[k]);
+            }
+        }
+    }
+
 }

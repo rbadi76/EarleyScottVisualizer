@@ -50,13 +50,13 @@
 
             <div class="container" id="queuesAndSets" hidden>
                 <div class="row">
-                    <div class="col-8 alert alert-primary me-1" id="infopanel">
+                    <div class="col-8 alert alert-primary" id="infopanel">
                         <h2 class="text-center">Notification</h2>
                     </div>
                     <div class="col-4">
-                        <button class="btn btn-danger" onclick="abort()">Abort</button>
+                        <button class="btn btn-danger" onclick="abort()" id="btnAbort">Abort</button>
                         <button class="btn btn-warning" onclick="pause()">Pause</button>
-                        <button class="btn btn-success" onclick="cont()">Continue</button>
+                        <button class="btn btn-success" onclick="cont()" id="btnContinueOrStartAgain">Continue</button>
                     </div>
                 </div>
                 <div class="row">
