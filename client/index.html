@@ -11,7 +11,7 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="shortcut icon" href="#">
-        <!--<link rel="stylesheet" href="">-->
+        <link href="css/main.css" rel="stylesheet">
         <!-- CSS only -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
     </head>
@@ -53,7 +53,7 @@
                     <div class="col-8 alert alert-primary" id="infopanel">
                         <h2 class="text-center">Notification</h2>
                     </div>
-                    <div class="col-4">
+                    <div class="col-4 btnFixed" id="ctrlButtons">
                         <button class="btn btn-danger" onclick="abort()" id="btnAbort">Abort</button>
                         <button class="btn btn-warning" onclick="pause()">Pause</button>
                         <button class="btn btn-success" onclick="cont()" id="btnContinueOrStartAgain">Continue</button>

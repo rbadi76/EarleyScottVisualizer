@@ -21,6 +21,14 @@ window.addEventListener("load", () => {
     document.getElementById("grammar").setAttribute("placeholder", helpTextGrammarLetters);
 }, false);
 
+window.addEventListener("resize", () => {
+    // Position the buttons in a fixed and accessible location so the user can scoll down and still access the buttons
+    let tokens = document.getElementById("tokens2");
+    let rect = tokens.getBoundingClientRect();
+    let ctrlButtons = document.getElementById("ctrlButtons");
+    ctrlButtons.style.left = rect.left + "px";
+});
+
 function testConnection()
 {
     //Perform an AJAX POST request to the url
@@ -109,6 +117,12 @@ function validatePrepareAndSend()
 
             earleySetsRow.append(divEi);
         }
+
+        // Position the buttons in a fixed and accessible location so the user can scoll down and still access the buttons
+        let tokens = document.getElementById("tokens2");
+        let rect = tokens.getBoundingClientRect();
+        let ctrlButtons = document.getElementById("ctrlButtons");
+        ctrlButtons.style.left = rect.left + "px";
     }
 
 }
@@ -235,7 +249,7 @@ function getStatus(step, ms)
             }
             else
             {
-                pStep.textContent = "Step " + step;
+                if(pStep) pStep.textContent = "Step " + step;
 
                 let infopanel = document.getElementById("infopanel");
                 // Parsing started
