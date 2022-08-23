@@ -234,21 +234,21 @@ class EarleyScott
                                 newEarleyScottItem.productionOrNT.moveCursorForwardByOne();
                                 let y = this.make_node(newEarleyScottItem.productionOrNT, newEarleyScottItem.i, i, newEarleyScottItem.w, element.w, this._V);
 
-                                let newNodeWith_y_asAChild = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
+                                let esi_with_node = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
                                 
                                 // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
                                 if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                                     && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
                                     && innerItem.i == newEarleyScottItem.i && innerItem.w == y))
                                 {
-                                    this._E[i].push(newNodeWith_y_asAChild);
-                                    this._R.push(newNodeWith_y_asAChild);   
+                                    this._E[i].push(esi_with_node);
+                                    this._R.push(esi_with_node);   
                                 }
                                 // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
                                 // according to Scott's paper. 
                                 if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
                                 {
-                                    this._Q.push(newNodeWith_y_asAChild);
+                                    this._Q.push(esi_with_node);
                                 }
                             }
                         });
@@ -836,11 +836,11 @@ class EarleyScottItem
     {
         if(this._productionOrNT instanceof Production)
         {
-            return "(" + this.productionOrNT.lhs + " ::= " + this.productionOrNT.rhs.join("") + ", " + this.i + ")";
+            return "(" + this.productionOrNT.lhs + " ::= " + this.productionOrNT.rhs.join("") + ", " + this.i + ", " + (this._w === null ? "null" : this._w.toString()) + ")";
         }
         else
         {
-            return "(" + this.productionOrNT + ", " + this.i + ")";
+            return "(" + this.productionOrNT + ", " + this.i + ", " + (this._w === null ? "null" : this._w.toString()) + ")";
         }
     }
 }
@@ -1116,6 +1116,30 @@ class Node
     {
         return "(" + this.label_1 + ", " + this._startIndex + ", " + this._endIndex + ")";
     }
+
+    nodesWithFamiliesToString()
+    {
+        let firstPart = "(" + this.label_1 + ", " + this._startIndex + ", " + this._endIndex;
+        if(this._familiesOfChildren.length)
+        {
+            let familiesToReturn = [];
+            this._familiesOfChildren.forEach(family => {
+                if(family instanceof BinaryFamily || family instanceof UnaryFamily)
+                {
+                    familiesToReturn.push(family.toString())
+                }
+                else
+                {
+                    throw new Error("The node " + this.toString() + " has a family of incorrect type. Only unary or binary allowed.");
+                }
+            });
+            return firstPart + ", " + JSON.stringify(familiesToReturn) + ")";
+        }
+        else
+        {
+            return firstPart + ")";
+        }
+    }
 }
 
 class UnaryFamily
@@ -1128,6 +1152,11 @@ class UnaryFamily
     get node()
     {
         return this._node;
+    }
+
+    toString()
+    {
+        return "(" + this.node.toString() + ")";
     }
 }
 
@@ -1142,6 +1171,11 @@ class BinaryFamily extends UnaryFamily
     get node2()
     {
         return this._node2;
+    }
+
+    toString()
+    {
+        return "(" + this.node.toString() + ", " + this.node2.toString() + ")";
     }
 }
 

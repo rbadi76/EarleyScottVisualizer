@@ -8,14 +8,6 @@ const port = process.env.PORT || 3500;
 
 app.use(express.static("."));
 
-app.get('/', function(req, res) {
-    res.sendFile(path.join(__dirname, '/index.html'));
-  });
-
-app.get('/js/main.js', function(req, res) {
-  res.sendFile(path.join(__dirname, '/js/main.js'));
-});
-
 app.listen(port, () => {
     console.log(`EarleyScottVisualizer client listening on port ${port}`)
-})
+});

@@ -28,7 +28,7 @@ let parseStatus = (function(){
         let innerArray = [];
         for(let j = 0; j < nodeArray.length; j++)
         {
-            innerArray.push(nodeArray[j].toString());
+            innerArray.push(nodeArray[j].nodesWithFamiliesToString());
         }
         return innerArray;
     }
@@ -117,6 +117,10 @@ let parseStatus = (function(){
         getV: function()
         {
             return getArrayOfStringifiedItems(V);
+        },
+        getVWithFamilies: function()
+        {
+            return getArrayOfStringifiedNodes(V);
         },
         getQ: function()
         {
