@@ -12,8 +12,12 @@ const helpTextGrammarWords = "Create grammar on the form S => word1 word2 | word
                              + " of a production.";
 
 let readyToParse = true;    // To know how to continue (Start again if done or continue when in middle of parsing)
-let timeout;        // To know what timeout to send to clearTimeout when pausing
+let getStatusTimeout;        // To know what timeout to send to clearTimeout when pausing
+let createParserTimeout;
 let currentStep;    // To know what step number to send to getStatus after pausing
+
+let SPPFnodes = new Set();  // This set contains all SPPF nodes that comes through queue V from the server
+                            // and will be used to render them to the user gradually.
 
 window.addEventListener("load", () => {
     document.getElementById("alphabet").setAttribute("placeholder", helpTextAlphabetLetters);
@@ -138,104 +142,99 @@ function sendParseRequest(reqObj)
         "tokenString": reqObj.tokenString,
         "grammar": reqObj.grammar
     })
-        .then(function (response) {
+    .then(function (response) {
 
-            // Initialize infopanel
-            let infopanel = document.getElementById("infopanel");
+        // Initialize infopanel
+        let infopanel = document.getElementById("infopanel");
 
-            // Remove old items
-            removeOldItems(infopanel, "P");
+        // Remove old items
+        removeOldItems(infopanel, "P");
 
-            let p = document.createElement("p");
-            let text = document.createTextNode("Parsing started.");
-            p.append(text)
-            p.classList.add("text-center");
+        let p = document.createElement("p");
+        let text = document.createTextNode("Parsing started.");
+        p.append(text)
+        p.classList.add("text-center");
 
-            // Create the step counter
-            let pStep = document.createElement("p");
-            let textStep = document.createTextNode("Step 0");
-            pStep.append(textStep)
-            pStep.classList.add("text-center");
-            pStep.setAttribute("id", "stepCount");
+        // Create the step counter
+        let pStep = document.createElement("p");
+        let textStep = document.createTextNode("Step 0");
+        pStep.append(textStep)
+        pStep.classList.add("text-center");
+        pStep.setAttribute("id", "stepCount");
 
-            // Append elements
-            infopanel.appendChild(p);
-            infopanel.appendChild(pStep);
+        // Append elements
+        infopanel.appendChild(p);
+        infopanel.appendChild(pStep);
 
-            // Show tokens and grammar
-            let tokensCol = document.getElementById("tokens2");
-            let grammarCol = document.getElementById("grammar2");
+        // Show tokens and grammar
+        let tokensCol = document.getElementById("tokens2");
+        let grammarCol = document.getElementById("grammar2");
 
-            // Remove old items
-            removeOldItems(tokensCol, "P");
-            removeOldItems(grammarCol, "P");
+        // Remove old items
+        removeOldItems(tokensCol, "P");
+        removeOldItems(grammarCol, "P");
 
-            let pTokens = document.createElement("p");
-            let textTokens = document.createTextNode(reqObj.tokenString.join(" "));
-            pTokens.append(textTokens);
-            tokensCol.appendChild(pTokens);
+        let pTokens = document.createElement("p");
+        let textTokens = document.createTextNode(reqObj.tokenString.join(" "));
+        pTokens.append(textTokens);
+        tokensCol.appendChild(pTokens);
 
-            reqObj.grammarGetter.forEach(production => {
-                let pProduction = document.createElement("p");
-                pProduction.classList.add("mb-1");
-                let rewrittenProduction;
-                production.forEach((item, ix) => {
-                    let noSpaceItem = item.split(" ").join("");
-                    if(ix == 0) rewrittenProduction = noSpaceItem + " ::= ";
-                    else 
-                    {
-                        if(ix == production.length - 1) rewrittenProduction += noSpaceItem;
-                        else rewrittenProduction += noSpaceItem + "|";
-                    }
-                });
-                let textProduction = document.createTextNode(rewrittenProduction);
-                pProduction.append(textProduction);
-                grammarCol.appendChild(pProduction);
+        reqObj.grammarGetter.forEach(production => {
+            let pProduction = document.createElement("p");
+            pProduction.classList.add("mb-1");
+            let rewrittenProduction;
+            production.forEach((item, ix) => {
+                let noSpaceItem = item.split(" ").join("");
+                if(ix == 0) rewrittenProduction = noSpaceItem + " ::= ";
+                else 
+                {
+                    if(ix == production.length - 1) rewrittenProduction += noSpaceItem;
+                    else rewrittenProduction += noSpaceItem + "|";
+                }
             });
-
-            let abortButton = document.getElementById("btnAbort")
-            abortButton.disabled = false;
-
-
-                    
-        })
-        .catch(function (error) {
-
-            if(error.hasOwnProperty('response') && error.response.hasOwnProperty('status') && error.response.status == 425)
-            {
-                console.log(error.response.result);
-                setTimeout(() => getStatus(0, 1000), 1000);
-                return;
-            }
-
-            //When unsuccessful, print the error.
-            let errorpanel = document.getElementById("errorpanel");
-            let p = document.createElement("p");
-            let text = document.createTextNode(error);
-            p.append(text);
-            p.classList.add("text-center");
-            errorpanel.appendChild(p);
-            errorpanel.removeAttribute("hidden")
-            parsingDone = true;
-        })
-        .then(function(){
-            //console.log("Last then in axios post.");
-            setTimeout(() => getStatus(0, 1000), 1000);
+            let textProduction = document.createTextNode(rewrittenProduction);
+            pProduction.append(textProduction);
+            grammarCol.appendChild(pProduction);
         });
+
+        let abortButton = document.getElementById("btnAbort")
+        abortButton.disabled = false;  
+        getStatusTimeout = setTimeout(() => getStatus(0, 1000), 1000);     
+    })
+    .catch(function (error) {
+
+        if(error.hasOwnProperty('response') && error.response.hasOwnProperty('status') && error.response.status == 425)
+        {
+            console.log(error.response.data[0].result);
+            createParserTimeout = setTimeout(() => sendParseRequest(reqObj), 1000);
+            return;
+        }
+
+        //When unsuccessful, print the error.
+        let errorpanel = document.getElementById("errorpanel");
+        let p = document.createElement("p");
+        let text = document.createTextNode(error);
+        p.append(text);
+        p.classList.add("text-center");
+        errorpanel.appendChild(p);
+        errorpanel.removeAttribute("hidden")
+        parsingDone = true;
+        abort();
+    });
 }
 
 function getStatus(step, ms)
 {
-    console.log("Get status called");
-    //Perform an AJAX POST request to the url
+    // console.log("Get status called");
+    // Perform an AJAX POST request to the url
 
     axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
         .then(function (response) {
-            console.log(response);
+            //console.log(response);
             let pStep = document.getElementById("stepCount");
             if(response.data[0].Final == "") 
             {
-                timeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
+                getStatusTimeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
 
                 if(pStep) pStep.textContent = "Step " + step;
                 currentStep = step;
@@ -246,6 +245,7 @@ function getStatus(step, ms)
                 populateOtherSets('Rset', response.data[0].R);
                 populateOtherSets('Vset', response.data[0].V);
                 populateOtherSets('Hset', response.data[0].H);
+                addToSPPFnodes(response.data[0].V_withNodes);
             }
             else
             {
@@ -274,12 +274,13 @@ function getStatus(step, ms)
             if(error.hasOwnProperty('response') && error.response.hasOwnProperty('status') && error.response.status == 425)
             {
                 console.log(error.response.result);
+                console.log(error.response.outcome);
                 console.log("Lengthening time to " + ms * 2 + "ms.");
-                setTimeout(() => getStatus(step, ms * 2), ms * 2);
+                getStatusTimeout = setTimeout(() => getStatus(step, ms * 2), ms * 2);
                 return;
             }
 
-            clearTimeout(timeout);
+            clearTimeout(getStatusTimeout);
 
             //When unsuccessful, print the error.
             console.log(error);
@@ -289,7 +290,8 @@ function getStatus(step, ms)
             p.append(text);
             p.classList.add("text-center");
             errorpanel.appendChild(p);
-            errorpanel.removeAttribute("hidden")
+            errorpanel.removeAttribute("hidden");
+            abort();
         });
 }
 
@@ -513,8 +515,24 @@ function populateOtherSets(id, theArray)
     }
 }
 
+function addToSPPFnodes(theArray)
+{
+    let orgSize = SPPFnodes.size;
+
+    theArray.forEach(item => {
+        SPPFnodes.add(item)
+    });
+
+    let newSize = SPPFnodes.size;
+
+    if(newSize > orgSize) renderNodes();
+}
+
 function abort()
 {
+    clearTimeout(getStatusTimeout);
+    clearTimeout(createParserTimeout);
+    readyToParse = true;
     //Perform an AJAX POST request to the url
     axios.delete(window.esvServiceUrl + '/api/v1/abort')
         .then(function (response) {
@@ -546,14 +564,14 @@ function cont()
     else // We were parsing but paused
     {
         // Continue with the parsing
-        timeout = setTimeout(() => getStatus(currentStep + 1, 1000), 1000);
+        getStatusTimeout = setTimeout(() => getStatus(currentStep + 1, 1000), 1000);
 
     }
 }
 
 function pause()
 {
-    clearTimeout(timeout);
+    clearTimeout(getStatusTimeout);
     let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
     continueOrStartButton.textContent = "Continue";
     continueOrStartButton.disabled = false;

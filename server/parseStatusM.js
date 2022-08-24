@@ -153,7 +153,7 @@ let parseStatus = (function(){
         },
         isInStopState: function()
         {
-            if(nextStepToShow == lastStepShown) return true;
+            if(nextStepToShow == lastStepShown && !abort) return true;
             else return false;
         },
         parsingInProgress: function()

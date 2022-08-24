@@ -122,6 +122,7 @@ app.delete('/api/v1/abort', (req, res) => {
     let respArray = [];
     try{
         parseStatus.parseStatus.abort();
+        parseStatus.parseStatus.setParsingDone();
         outcome = "Parsing aborted, or rather is allowed to finish quickly.";
         respArray.push({ result: outcome});
         return res.status(201).json(respArray);

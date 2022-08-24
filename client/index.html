@@ -115,8 +115,12 @@
                         <h3 id="Vset"><span class="badge bg-secondary">V</span></h3>
                     </div>
                 </div>
-                <div class="row mt-2 mb-2">
-                    <div class="col"><h2>Nodes</h2></div>
+                <div class="row card text-bg-dark mt-2 mb-2">
+                    <div class="col card-body" id="SPPFnodesArea">
+                        <h2>Nodes</h2>
+                        <svg id="svgImgArea">
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -124,6 +128,7 @@
             <!--<button id="btnTest" onclick="testConnection()">Test webservice</button>-->
         </div>
         <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        <script src="js/SPPFnodeRendering.js"></script>
         <script src="js/main.js"></script>
     </body>
 </html>
