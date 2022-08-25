@@ -16,7 +16,7 @@ let getStatusTimeout;        // To know what timeout to send to clearTimeout whe
 let createParserTimeout;
 let currentStep;    // To know what step number to send to getStatus after pausing
 
-let SPPFnodes = new Set();  // This set contains all SPPF nodes that comes through queue V from the server
+let SPPFnodes = new Map();  // This set contains all SPPF nodes that comes through queue V from the server
                             // and will be used to render them to the user gradually.
 
 window.addEventListener("load", () => {
@@ -199,6 +199,7 @@ function sendParseRequest(reqObj)
 
         let abortButton = document.getElementById("btnAbort")
         abortButton.disabled = false;  
+        SPPFnodes = new Map();
         getStatusTimeout = setTimeout(() => getStatus(0, 1000), 1000);     
     })
     .catch(function (error) {
@@ -517,15 +518,65 @@ function populateOtherSets(id, theArray)
 
 function addToSPPFnodes(theArray)
 {
-    let orgSize = SPPFnodes.size;
+    theArray.forEach(node => {
 
-    theArray.forEach(item => {
-        SPPFnodes.add(item)
+        let newNode = new SPPFnode(node[0], node[1], node[2]);
+        if(!SPPFnodes.has(newNode.toString())) // The node has not been added yet to the node map
+        {
+            let familiesMap;
+            if(node.length > 3) // node[3] is the array of families - there are families existing
+            {
+                newNode = getFamiliesFromV_withNodesArray(node[3], newNode);
+            }
+            SPPFnodes.set(newNode.toString(), newNode);
+
+        }
+        else // The node is already in the node map, check if it is the same, if not swap it out.
+        {
+            let existingNode = SPPFnodes.get(newNode.toString());
+            let newNodeWithArrays = getFamiliesFromV_withNodesArray(node[3], newNode);
+            if(existingNode.familiesCount() != newNodeWithArrays.familiesCount())
+            {
+                SPPFnodes.set(newNode.toString(), newNodeWithArrays);
+            }
+            else
+            {
+                let sameness = true;
+                for(const family of newNodeWithArrays.families)
+                {
+                    if(!existingNode.families.has(family))
+                    {
+                        sameness = false;
+                        break;
+                    }
+                }
+                if(!sameness) SPPFnodes.set(newNode.toString(), newNodeWithArrays);
+                // Else do nothing.
+            }
+        }  
     });
+}
 
-    let newSize = SPPFnodes.size;
-
-    if(newSize > orgSize) renderNodes();
+function getFamiliesFromV_withNodesArray(familiesArray, newNode)
+{
+    //let familiesMap = new Map();
+    familiesArray.forEach(family => {
+        let newFamily;
+        if(family.length == 1) // Unary node
+        {
+            newFamily = new UnaryFamily(new SPPFnode(family[0][0], family[0][1], family[0][2]));            
+        }
+        else if(family.length == 2) // Binary node
+        {
+            newFamily = new BinaryFamily(new SPPFnode(family[0][0], family[0][1], family[0][2]), new SPPFnode(family[1][0], family[1][1], family[1][2]));
+        }
+        else
+        {
+            throw new Error("Server sent a family into V_withNodes that is neither unary nor binary. This is not supposed to be possible.");
+        }
+        newNode.addFamily(newFamily);
+    });
+    return newNode;
 }
 
 function abort()

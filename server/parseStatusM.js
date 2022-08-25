@@ -23,12 +23,12 @@ let parseStatus = (function(){
         return innerArray;
     }
 
-    function getArrayOfStringifiedNodes(nodeArray)
+    function getArrayOfNodeArrays(nodeArray)
     {
         let innerArray = [];
         for(let j = 0; j < nodeArray.length; j++)
         {
-            innerArray.push(nodeArray[j].nodesWithFamiliesToString());
+            innerArray.push(nodeArray[j].nodeWithFamiliesToArray());
         }
         return innerArray;
     }
@@ -120,7 +120,7 @@ let parseStatus = (function(){
         },
         getVWithFamilies: function()
         {
-            return getArrayOfStringifiedNodes(V);
+            return getArrayOfNodeArrays(V);
         },
         getQ: function()
         {

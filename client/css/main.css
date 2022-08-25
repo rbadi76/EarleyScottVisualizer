@@ -3,3 +3,14 @@ div.btnFixed{
     width: 300px;
     z-index: 1;
 }
+
+div.node{
+    width: 100px;
+    border: solid red 1px;
+    margin: 20px;
+    z-index: 10;
+}
+
+canvas{
+    border: dashed blue 1px;
+}

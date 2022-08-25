@@ -1117,9 +1117,9 @@ class Node
         return "(" + this.label_1 + ", " + this._startIndex + ", " + this._endIndex + ")";
     }
 
-    nodesWithFamiliesToString()
+    nodeWithFamiliesToString()
     {
-        let firstPart = "(" + this.label_1 + ", " + this._startIndex + ", " + this._endIndex;
+        let firstPart = "(" + String(this.label_1) + ", " + this._startIndex + ", " + this._endIndex;
         if(this._familiesOfChildren.length)
         {
             let familiesToReturn = [];
@@ -1139,6 +1139,51 @@ class Node
         {
             return firstPart + ")";
         }
+    }
+
+    nodeWithFamiliesToArray()
+    {
+        let mainArray = [];
+        mainArray.push(String(this.label_1));
+        mainArray.push(this._startIndex);
+        mainArray.push(this._endIndex);
+
+        let innerArray = [];
+        this._familiesOfChildren.forEach(family => {
+            let outerFamilyArray = [];
+            let familyArray1 = [];
+            if(family instanceof BinaryFamily) // Must start with this otherwise instance of UnaryFamily will also return true for BinaryFamily as it inherits from UnaryFamily
+            {
+                familyArray1.push(family.node.label_1);
+                familyArray1.push(family.node.startIndex);
+                familyArray1.push(family.node.endIndex);
+                outerFamilyArray.push(familyArray1);
+
+                let familyArray2 = [];
+                familyArray2.push(family.node2.label_1);
+                familyArray2.push(family.node2.startIndex);
+                familyArray2.push(family.node2.endIndex);
+                outerFamilyArray.push(familyArray2);
+                innerArray.push(outerFamilyArray);
+            }
+            else if(family instanceof UnaryFamily)
+            {
+                familyArray1.push(family.node.label_1);
+                familyArray1.push(family.node.startIndex);
+                familyArray1.push(family.node.endIndex);
+                outerFamilyArray.push(familyArray1);
+                innerArray.push(outerFamilyArray);
+            }
+            else
+            {
+                throw new Error("Family was of neither type UnaryFamily nor BinaryFamily. This should not happen.");
+            }
+        });
+        if(innerArray.length)
+        {
+            mainArray.push(innerArray);
+        }
+        return mainArray;
     }
 }
 
