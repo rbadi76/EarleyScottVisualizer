@@ -14,3 +14,14 @@ div.node{
 canvas{
     border: dashed blue 1px;
 }
+
+/* for testing */
+#svgImgArea{
+    border: solid red 1px;
+}
+
+ellipse{
+    fill:yellow;
+    stroke:purple;
+    stroke-width: 2;
+}

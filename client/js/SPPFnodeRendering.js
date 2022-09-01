@@ -89,6 +89,65 @@ class SPPFnode
     renderNode()
     {
         console.log("Bla");
+
+        let svgArea = document.getElementById("svgImgArea");
+
+        let sanitizedNewId = this._label;
+        if(this._label.indexOf("::=") > 0)
+        {
+            sanitizedNewId = sanitizedNewId.replace("=", "");
+            sanitizedNewId = sanitizedNewId.replace("(", "");
+            sanitizedNewId = sanitizedNewId.replace(")", "");
+            sanitizedNewId = sanitizedNewId.replaceAll(" ", "-");
+            sanitizedNewId = sanitizedNewId.replace("·", ".");
+        }
+        
+        let newId = sanitizedNewId + "_" + this._i + "_" + this._j;
+        // Check if node is already rendered by checking if an element with an id based on the label exists.
+
+        // My idea now is to first let them appear in the corner and after all have been put on the svg element
+        // Position them based on position in the map and the number of nodes present. Will thing better of it tomorrow.
+        if(!document.getElementById(newId))
+        {
+            let middleOfWidth;
+            let middleOfHeight;
+            if(!document.getElementsByName("ELLIPSE").length)
+            {
+                middleOfWidth = svgArea.clientWidth / 2;
+                middleOfHeight = svgArea.clientHeight / 2;
+            }
+
+            let cx = middleOfWidth;
+            let cy = middleOfHeight;
+
+            let text_x = middleOfWidth;
+            let text_y = middleOfHeight;
+            
+
+            // If it does not, render it by creating an SVG elipse with label as text
+            let newEllipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+            newEllipse.setAttribute("id", newId);
+            newEllipse.setAttribute("cx", cx);
+            newEllipse.setAttribute("cy", cy);
+            newEllipse.setAttribute("rx", 60);
+            newEllipse.setAttribute("ry", 25);
+
+            let newEllipseLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            newEllipseLabel.setAttribute("x", text_x);
+            newEllipseLabel.setAttribute("y", text_y);
+            newEllipseLabel.setAttribute("id", newId + "_text");
+
+            let newEllipseLabelText = document.createTextNode("{" + this._label + ", " + this._i + ", " + this._j + "}");
+            newEllipseLabel.appendChild(newEllipseLabelText);
+
+
+            svgArea.appendChild(newEllipse);
+            svgArea.appendChild(newEllipseLabel);
+            //svgArea.appendChild("Sorry, your browser does not support inline SVG.");
+        }      
+
+        // Else check if children have been rendered
+        //      If they have not, render each child not already rendered and draw a line between parent and child.
     }
 
     get label()

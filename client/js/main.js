@@ -127,6 +127,11 @@ function validatePrepareAndSend()
         let rect = tokens.getBoundingClientRect();
         let ctrlButtons = document.getElementById("ctrlButtons");
         ctrlButtons.style.left = rect.left + "px";
+
+        // Set the size of the SVG for the nodes
+        let widthOfSPPFnodesArea = document.getElementById("SPPFnodesArea").offsetWidth
+        let svgArea = document.getElementById("svgImgArea");
+        svgArea.setAttribute("width", widthOfSPPFnodesArea - 30);
     }
 
 }
@@ -518,6 +523,7 @@ function populateOtherSets(id, theArray)
 
 function addToSPPFnodes(theArray)
 {
+    let sppfNodesHaveChanged = false;
     theArray.forEach(node => {
 
         let newNode = new SPPFnode(node[0], node[1], node[2]);
@@ -529,6 +535,7 @@ function addToSPPFnodes(theArray)
                 newNode = getFamiliesFromV_withNodesArray(node[3], newNode);
             }
             SPPFnodes.set(newNode.toString(), newNode);
+            sppfNodesHaveChanged = true;
 
         }
         else // The node is already in the node map, check if it is the same, if not swap it out.
@@ -538,6 +545,7 @@ function addToSPPFnodes(theArray)
             if(existingNode.familiesCount() != newNodeWithArrays.familiesCount())
             {
                 SPPFnodes.set(newNode.toString(), newNodeWithArrays);
+                sppfNodesHaveChanged = true;
             }
             else
             {
@@ -550,11 +558,27 @@ function addToSPPFnodes(theArray)
                         break;
                     }
                 }
-                if(!sameness) SPPFnodes.set(newNode.toString(), newNodeWithArrays);
+                if(!sameness) 
+                {
+                    SPPFnodes.set(newNode.toString(), newNodeWithArrays);
+                    sppfNodesHaveChanged = true;
+                }
                 // Else do nothing.
             }
         }  
     });
+
+    if(sppfNodesHaveChanged)
+    {
+        // TODO: Render the nodes again or add to the existing rendering
+        // Need to think this through
+        // Leaning towards adding to the existing rendering
+
+        // Iterate through each item in the map and render each node.
+        SPPFnodes.forEach(node => {
+            node.renderNode();
+        });
+    }
 }
 
 function getFamiliesFromV_withNodesArray(familiesArray, newNode)
