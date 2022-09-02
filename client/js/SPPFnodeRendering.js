@@ -88,7 +88,7 @@ class SPPFnode
 
     renderNode()
     {
-        console.log("Bla");
+        console.log("Rendered node " + this._label + ". It has now " + this._families.size + " families.");
 
         let svgArea = document.getElementById("svgImgArea");
 
@@ -106,7 +106,7 @@ class SPPFnode
         // Check if node is already rendered by checking if an element with an id based on the label exists.
 
         // My idea now is to first let them appear in the corner and after all have been put on the svg element
-        // Position them based on position in the map and the number of nodes present. Will thing better of it tomorrow.
+        // Position them based on position in the map and the number of nodes present. Will think better of it tomorrow.
         if(!document.getElementById(newId))
         {
             let middleOfWidth;

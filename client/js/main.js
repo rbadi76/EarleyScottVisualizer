@@ -552,7 +552,7 @@ function addToSPPFnodes(theArray)
                 let sameness = true;
                 for(const family of newNodeWithArrays.families)
                 {
-                    if(!existingNode.families.has(family))
+                    if(!existingNode.families.has(family[1].getKey()) && (family instanceof BinaryFamily ? !existingNode.families.has(family[1].getReverseKey()) : true))
                     {
                         sameness = false;
                         break;
@@ -570,13 +570,14 @@ function addToSPPFnodes(theArray)
 
     if(sppfNodesHaveChanged)
     {
+        console.log("Debug: A node has changed.")
         // TODO: Render the nodes again or add to the existing rendering
         // Need to think this through
         // Leaning towards adding to the existing rendering
 
         // Iterate through each item in the map and render each node.
         SPPFnodes.forEach(node => {
-            node.renderNode();
+            node.renderNode(); 
         });
     }
 }
