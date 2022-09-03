@@ -92,21 +92,57 @@ class SPPFnode
 
         let svgArea = document.getElementById("svgImgArea");
 
-        let sanitizedNewId = this._label;
-        if(this._label.indexOf("::=") > 0)
-        {
-            sanitizedNewId = sanitizedNewId.replace("=", "");
-            sanitizedNewId = sanitizedNewId.replace("(", "");
-            sanitizedNewId = sanitizedNewId.replace(")", "");
-            sanitizedNewId = sanitizedNewId.replaceAll(" ", "-");
-            sanitizedNewId = sanitizedNewId.replace("·", ".");
-        }
-        
-        let newId = sanitizedNewId + "_" + this._i + "_" + this._j;
-        // Check if node is already rendered by checking if an element with an id based on the label exists.
+        let sanitizedLabel;
+        if(this._label.indexOf("::=") > 0) sanitizedLabel = this.sanitizeLabel(this._label);
+        let newId = sanitizedLabel + "_" + this._i + "_" + this._j;
 
+        // Check if node is already rendered by checking if an element with an id based on the label exists.
         // My idea now is to first let them appear in the corner and after all have been put on the svg element
         // Position them based on position in the map and the number of nodes present. Will think better of it tomorrow.
+
+        /*
+        All render node does is create the ellipse and text and give them an ID to be referrence later IF it
+        does not exist already.
+
+        Another function, not in this class takes care of positioning them in the following manner:
+
+        It counts the number of nodes in the map (nodeCount)
+        It goes through the map in reverse order (top down from the SPPFs perspective).
+
+        First determine how many disjoint trees we have and maximum number of levels of any tree. 
+        This is done in the following manner:
+
+        Copy the SPPFNodes map, call it SPPFNodes_copy.
+        If it is not empty:
+            Create an array, call it SPPF_trees.
+            #R1 Add an array to it (outer container).
+            push an array (inner container)
+            push the key of the node at the bottom of SPPFNodes_copy to the inner container.
+            If the node has children, for the first child push an array to the outer container.
+            for each child push its key to the inner container.
+            Remove the parent node from SPPFNodes_copy
+            
+            #R2 Now go to the last array or SPPF_trees (outer container), and last array of it (inner container with children)
+            and and for each node key there check for children in those nodes contained in SPPFNodes_copy 
+            If the node has children, for the first child push an array to the outer container.
+            for each child push its key to the inner container.
+            Remove the parent node from SPPFNodes_copy
+            If SPPFNodes_copy is empty stop.
+            Otherwise check if the last inner array has been checked for children
+            If yes and goto #R1
+            If no goto #R2
+
+            When this is done the number of outer arrays in SPPF_trees determines the number of trees/areas for trees
+            The number of inner arrays tells you how many levels each tree has and the number of nodes in each level.
+            This should aid you in drawing the nodes.
+
+            Later we draw the connectors. How to do that will be determined later.
+
+            On Monday Try stepping through this pseudocode by using Tree rendering algrorithm test.txt and see if it works as expected.
+        
+        */
+
+
         if(!document.getElementById(newId))
         {
             let middleOfWidth;
@@ -148,6 +184,15 @@ class SPPFnode
 
         // Else check if children have been rendered
         //      If they have not, render each child not already rendered and draw a line between parent and child.
+    }
+
+    sanitizeLabel(label) {
+        label = label.replace("=", "");
+        label = label.replace("(", "");
+        label = label.replace(")", "");
+        label = label.replaceAll(" ", "-");
+        label = label.replace("·", ".");
+        return label;
     }
 
     get label()
