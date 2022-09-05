@@ -1,12 +1,24 @@
-function renderNodes()
+function determineCurrentSPPFstructure()
 {
-    console.log("Render nodes called.");
+    // Deep copy with families
+    let SPPFnodes_copy = copySPPFnodesMap();
 
-    let svgImageArea = document.getElementById("svgImgArea");
-    let nodesArea = document.getElementById("SPPFnodesArea");
-    console.log("Nodes area offset width: " + nodesArea.offsetWidth);
-    console.log("Writing out the nodes saved in a set:")
-    console.log(SPPFnodes);
+    if(SPPFnodes_copy.size)
+    {
+        let SPPF_trees = [];
+
+        // R1
+        SPPF_trees.push([]); // Outer array added
+        SPPF_trees[SPPF_trees.length - 1].push([]); // Inner array added
+        let iterator = SPPFnodes_copy.entries();
+        for(let i = 1; i < SPPFnodes_copy.size; i++) // The only way to get to the last item of a Map
+        {
+            iterator.next();
+        }
+        SPPF_trees[SPPF_trees.length - 1][0].push(iterator.next().value); // push the key of the node at the bottom of SPPFNodes_copy to the inner container.
+        console.log(SPPF_trees);
+        // TODO: To be continued tomorrow.
+    }
 }
 
 class SPPFnode
@@ -113,7 +125,7 @@ class SPPFnode
         This is done in the following manner:
 
         Copy the SPPFNodes map, call it SPPFNodes_copy.
-        If it is not empty:
+        If SPPFNodes_copy is not empty:
             Create an array, call it SPPF_trees.
             #R1 Add an array to it (outer container).
             push an array (inner container)
@@ -122,23 +134,27 @@ class SPPFnode
             for each child push its key to the inner container.
             Remove the parent node from SPPFNodes_copy
             
-            #R2 Now go to the last array or SPPF_trees (outer container), and last array of it (inner container with children)
+            #R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
             and and for each node key there check for children in those nodes contained in SPPFNodes_copy 
-            If the node has children, for the first child push an array to the outer container.
-            for each child push its key to the inner container.
+            If any node has children, for the first child push an array to the outer container.
+            for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
             Remove the parent node from SPPFNodes_copy
             If SPPFNodes_copy is empty stop.
             Otherwise check if the last inner array has been checked for children
             If yes and goto #R1
             If no goto #R2
 
+            Finally remove all duplicate terminals at upper levels, leaving them at the leaves and remove all duplicate non-terminal leaves leaving the top most.
+
             When this is done the number of outer arrays in SPPF_trees determines the number of trees/areas for trees
             The number of inner arrays tells you how many levels each tree has and the number of nodes in each level.
             This should aid you in drawing the nodes.
 
             Later we draw the connectors. How to do that will be determined later.
+            Also later we will calculate the positioning based on the SPPF_trees array.
 
             On Monday Try stepping through this pseudocode by using Tree rendering algrorithm test.txt and see if it works as expected.
+            --> Done. Small changes need.
         
         */
 
@@ -263,3 +279,30 @@ class BinaryFamily extends UnaryFamily
     }
 }
  
+function copySPPFnodesMap() {
+    let SPPFNodes_copy = new Map();
+    SPPFnodes.forEach(function (value, key) {
+        let newNode = new SPPFnode(value.label, value.i, value.j);
+        if (value._families.size) {
+            value._families.forEach(family => {
+                if (family instanceof BinaryFamily) {
+                    let node1 = new SPPFnode(family._node.label, family._node.i, family._node.j);
+                    let node2 = new SPPFnode(family._node2.label, family._node2.i, family._node2.j);
+                    let binaryFamilyCopy = new BinaryFamily(node1, node2);
+                    newNode.addFamily(binaryFamilyCopy);
+
+                }
+
+                else {
+                    let node = new SPPFnode(family._node.label, family._node.i, family._node.j);
+                    let unaryFamilyCopy = new UnaryFamily(node);
+                    let val = SPPFNodes_copy.get(value.toString());
+                    newNode.addFamily(unaryFamilyCopy);
+                }
+            });
+        }
+        SPPFNodes_copy.set(newNode.toString(), newNode);
+    });
+    return SPPFNodes_copy;
+}
+

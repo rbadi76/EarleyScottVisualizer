@@ -579,6 +579,8 @@ function addToSPPFnodes(theArray)
         SPPFnodes.forEach(node => {
             node.renderNode(); 
         });
+
+        determineCurrentSPPFstructure();
     }
 }
 
