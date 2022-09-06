@@ -1154,13 +1154,13 @@ class Node
             let familyArray1 = [];
             if(family instanceof BinaryFamily) // Must start with this otherwise instance of UnaryFamily will also return true for BinaryFamily as it inherits from UnaryFamily
             {
-                familyArray1.push(family.node.label_1);
+                familyArray1.push(String(family.node.label_1));
                 familyArray1.push(family.node.startIndex);
                 familyArray1.push(family.node.endIndex);
                 outerFamilyArray.push(familyArray1);
 
                 let familyArray2 = [];
-                familyArray2.push(family.node2.label_1);
+                familyArray2.push(String(family.node2.label_1));
                 familyArray2.push(family.node2.startIndex);
                 familyArray2.push(family.node2.endIndex);
                 outerFamilyArray.push(familyArray2);
@@ -1168,7 +1168,7 @@ class Node
             }
             else if(family instanceof UnaryFamily)
             {
-                familyArray1.push(family.node.label_1);
+                familyArray1.push(String(family.node.label_1));
                 familyArray1.push(family.node.startIndex);
                 familyArray1.push(family.node.endIndex);
                 outerFamilyArray.push(familyArray1);

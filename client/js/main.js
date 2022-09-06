@@ -529,7 +529,6 @@ function addToSPPFnodes(theArray)
         let newNode = new SPPFnode(node[0], node[1], node[2]);
         if(!SPPFnodes.has(newNode.toString())) // The node has not been added yet to the node map
         {
-            let familiesMap;
             if(node.length > 3) // node[3] is the array of families - there are families existing
             {
                 newNode = getFamiliesFromV_withNodesArray(node[3], newNode);

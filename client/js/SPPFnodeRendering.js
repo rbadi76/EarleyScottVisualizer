@@ -3,22 +3,97 @@ function determineCurrentSPPFstructure()
     // Deep copy with families
     let SPPFnodes_copy = copySPPFnodesMap();
 
-    if(SPPFnodes_copy.size)
-    {
-        let SPPF_trees = [];
+    let SPPF_trees = [];
 
-        // R1
+    // R1
+    let lastInnerArrayHasBeenCheckedForChildren = true; // Must be true to begin, will change later.
+    while(SPPFnodes_copy.size && lastInnerArrayHasBeenCheckedForChildren)
+    {
         SPPF_trees.push([]); // Outer array added
-        SPPF_trees[SPPF_trees.length - 1].push([]); // Inner array added
+        let outerArray = SPPF_trees[SPPF_trees.length - 1];
+        outerArray.push(new Set()); // Inner Set added
+
+        // Get the last item added to the SPPFnodes_copy map.
         let iterator = SPPFnodes_copy.entries();
         for(let i = 1; i < SPPFnodes_copy.size; i++) // The only way to get to the last item of a Map
         {
             iterator.next();
         }
-        SPPF_trees[SPPF_trees.length - 1][0].push(iterator.next().value); // push the key of the node at the bottom of SPPFNodes_copy to the inner container.
-        console.log(SPPF_trees);
-        // TODO: To be continued tomorrow.
+        let keyOfBottomItem = iterator.next().value[0];
+        outerArray[0].add(keyOfBottomItem); // push the key of the node at the bottom of SPPFNodes_copy to the inner container.
+        let bottomNode = SPPFnodes_copy.get(keyOfBottomItem);
+        if(bottomNode.families.size)
+        {
+            // If the node has children, for the first child push an Set to the outer container.
+            outerArray.push(new Set());
+
+            // for each child push its key to the inner container.
+            bottomNode.families.forEach(family => {
+                outerArray[1].add(family.node.toString());
+                if(family instanceof BinaryFamily)
+                {
+                    outerArray[1].add(family.node2.toString());
+                }                
+            });
+            SPPFnodes_copy.delete(keyOfBottomItem); // Remove the parent node from SPPFNodes_copy
+        }
+
+        lastInnerArrayHasBeenCheckedForChildren = false; // I know, this is ridiculous! But will it work?
+
+        while(SPPFnodes_copy.size && !lastInnerArrayHasBeenCheckedForChildren)
+        {
+            // R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
+            let SPPF_trees_lastIdx = SPPF_trees.length - 1;
+            let SPPF_trees_innerArrayLastIdx = SPPF_trees[SPPF_trees_lastIdx].length - 1;
+
+            let childNodeFound = false;
+            // and for each node key there 
+            SPPF_trees[SPPF_trees_lastIdx][SPPF_trees_innerArrayLastIdx].forEach(key => {
+                // check for children in those nodes contained in SPPFNodes_copy
+                if(SPPFnodes_copy.has(key)) // Check if SPPFnodes_copy has the key as it might have been deleted if already processed
+                {
+                    let nodeToCheck = SPPFnodes_copy.get(key);
+                    // If any node has children, for the first child push an array to the outer container.
+                    if(nodeToCheck.families.size && !childNodeFound) // Only push once when first child is found
+                    {
+                        childNodeFound = true;
+                        outerArray.push(new Set());
+                    }
+                    // for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
+                    if(nodeToCheck.families.size)
+                    {
+                        nodeToCheck.families.forEach(family => {
+                            // To ensure correct ordering we check for existence and delete the previous entry before we try adding again.
+                            let innerArray = outerArray[SPPF_trees_innerArrayLastIdx + 1];
+                            if(innerArray.has(family.node.toString()))
+                            {
+                                innerArray.delete(family.node.toString());
+                            }
+                            innerArray.add(family.node.toString());
+                            if(family instanceof BinaryFamily)
+                            {
+                                if(innerArray.has(family.node2.toString()))
+                                {
+                                    innerArray.delete(family.node2.toString());
+                                }
+                                innerArray.add(family.node2.toString());
+                            }
+                        });
+                    }
+                    // Remove the parent node from SPPFNodes_copy
+                    SPPFnodes_copy.delete(key);
+                }
+            });
+
+            // Otherwise check if the last inner array has been checked for children
+            // If yes and goto #R1
+            // If no goto #R2
+            // If the length of the inner array has not changed after the forEach above then we have checked the last array for children.
+            lastInnerArrayHasBeenCheckedForChildren = (SPPF_trees_innerArrayLastIdx + 1) == SPPF_trees[SPPF_trees_lastIdx].length;
+        }
     }
+    
+    console.log(SPPF_trees);
 }
 
 class SPPFnode
@@ -296,7 +371,6 @@ function copySPPFnodesMap() {
                 else {
                     let node = new SPPFnode(family._node.label, family._node.i, family._node.j);
                     let unaryFamilyCopy = new UnaryFamily(node);
-                    let val = SPPFNodes_copy.get(value.toString());
                     newNode.addFamily(unaryFamilyCopy);
                 }
             });
