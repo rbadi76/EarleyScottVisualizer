@@ -140,7 +140,7 @@ let parsingDone = false;
 function sendParseRequest(reqObj)
 {
     let jsonObj = JSON.stringify(reqObj);
-    console.log(jsonObj);
+    //console.log(jsonObj);
     //Perform an AJAX POST request to the url
     axios.post(window.esvServiceUrl + '/api/v1/createParser', {
         "alphabet": reqObj.alphabet,
@@ -569,7 +569,7 @@ function addToSPPFnodes(theArray)
 
     if(sppfNodesHaveChanged)
     {
-        console.log("Debug: A node has changed.")
+        //console.log("Debug: A node has changed.")
         // TODO: Render the nodes again or add to the existing rendering
         // Need to think this through
         // Leaning towards adding to the existing rendering

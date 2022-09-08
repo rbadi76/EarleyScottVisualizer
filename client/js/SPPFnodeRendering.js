@@ -7,8 +7,9 @@ function determineCurrentSPPFstructure()
 
     // R1
     let lastInnerArrayHasBeenCheckedForChildren = true; // Must be true to begin, will change later.
-    while(SPPFnodes_copy.size && lastInnerArrayHasBeenCheckedForChildren)
+    while(SPPFnodes_copy.size)
     {
+        //console.log("In outer while. SPPFnodes_copy.size=" + SPPFnodes_copy.size)
         SPPF_trees.push([]); // Outer array added
         let outerArray = SPPF_trees[SPPF_trees.length - 1];
         outerArray.push(new Set()); // Inner Set added
@@ -38,25 +39,25 @@ function determineCurrentSPPFstructure()
             SPPFnodes_copy.delete(keyOfBottomItem); // Remove the parent node from SPPFNodes_copy
         }
 
-        lastInnerArrayHasBeenCheckedForChildren = false; // I know, this is ridiculous! But will it work?
-
-        while(SPPFnodes_copy.size && !lastInnerArrayHasBeenCheckedForChildren)
+        let checkForChildren = true; 
+        while(SPPFnodes_copy.size && checkForChildren)
         {
+            //console.log("In inner while. SPPFnodes_copy.size=" + SPPFnodes_copy.size)
             // R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
-            let SPPF_trees_lastIdx = SPPF_trees.length - 1;
-            let SPPF_trees_innerArrayLastIdx = SPPF_trees[SPPF_trees_lastIdx].length - 1;
+            let SPPF_trees_outerArrayLastIdx = SPPF_trees.length - 1;
+            let SPPF_trees_innerArrayLastIdx = SPPF_trees[SPPF_trees_outerArrayLastIdx].length - 1;
 
-            let childNodeFound = false;
+            checkForChildren = false;
             // and for each node key there 
-            SPPF_trees[SPPF_trees_lastIdx][SPPF_trees_innerArrayLastIdx].forEach(key => {
+            SPPF_trees[SPPF_trees_outerArrayLastIdx][SPPF_trees_innerArrayLastIdx].forEach(key => {
                 // check for children in those nodes contained in SPPFNodes_copy
                 if(SPPFnodes_copy.has(key)) // Check if SPPFnodes_copy has the key as it might have been deleted if already processed
                 {
                     let nodeToCheck = SPPFnodes_copy.get(key);
                     // If any node has children, for the first child push an array to the outer container.
-                    if(nodeToCheck.families.size && !childNodeFound) // Only push once when first child is found
+                    if(nodeToCheck.families.size && !checkForChildren) // Only push once when first child is found
                     {
-                        childNodeFound = true;
+                        checkForChildren = true;
                         outerArray.push(new Set());
                     }
                     // for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
@@ -64,19 +65,11 @@ function determineCurrentSPPFstructure()
                     {
                         nodeToCheck.families.forEach(family => {
                             // To ensure correct ordering we check for existence and delete the previous entry before we try adding again.
-                            let innerArray = outerArray[SPPF_trees_innerArrayLastIdx + 1];
-                            if(innerArray.has(family.node.toString()))
-                            {
-                                innerArray.delete(family.node.toString());
-                            }
-                            innerArray.add(family.node.toString());
+                            let innerSet = outerArray[SPPF_trees_innerArrayLastIdx + 1];
+                            innerSet.add(family.node.toString());
                             if(family instanceof BinaryFamily)
                             {
-                                if(innerArray.has(family.node2.toString()))
-                                {
-                                    innerArray.delete(family.node2.toString());
-                                }
-                                innerArray.add(family.node2.toString());
+                                innerSet.add(family.node2.toString());
                             }
                         });
                     }
@@ -88,12 +81,126 @@ function determineCurrentSPPFstructure()
             // Otherwise check if the last inner array has been checked for children
             // If yes and goto #R1
             // If no goto #R2
-            // If the length of the inner array has not changed after the forEach above then we have checked the last array for children.
-            lastInnerArrayHasBeenCheckedForChildren = (SPPF_trees_innerArrayLastIdx + 1) == SPPF_trees[SPPF_trees_lastIdx].length;
         }
     }
-    
-    console.log(SPPF_trees);
+
+    console.log("Tree before sorting and pruning:")
+    console.log(writeOutSPPFtreesKeys(SPPF_trees));
+
+    // Pruning starts
+    // Delete duplicate terminals at upper levels
+    let outerArrayLastIndex = SPPF_trees.length - 1;
+    let innerArrayLastIndex;
+    for(let i = outerArrayLastIndex; i >= 0; i--)
+    {
+        innerArrayLastIndex = SPPF_trees[i].length - 1;
+        for(let j = innerArrayLastIndex; j >= 0; j--)
+        {
+            let theSet = SPPF_trees[i][j];
+            let iterator = theSet.values();
+            for(const key of iterator)
+            {
+                if(!SPPFnodes.has(key)) // This is a terminal if the node is not found in SPPFnodes as it only contains non-terminals
+                {
+                    for(let k = j - 1; k >= 0; k--)
+                    {
+                        if(SPPF_trees[i][k].has(key))
+                        {
+                            SPPF_trees[i][k].delete(key);
+                        }
+                    }     
+                }
+            }
+        }
+    }
+
+    // Delete duplicate non-terminals at lower levels
+    for(let i = 0; i <= outerArrayLastIndex; i++)
+    {
+        innerArrayLastIndex = SPPF_trees[i].length - 1;
+        for(let j = 0; j <= innerArrayLastIndex; j++)
+        {
+            let theSet = SPPF_trees[i][j];
+            let iterator = theSet.values();
+            for(const key of iterator)
+            {    
+                if(SPPFnodes.has(key)) // This is a non-terminal if the node is found in SPPFnodes as it only contains non-terminals
+                {
+                    for(let k = j + 1; k <= innerArrayLastIndex; k++)
+                    {
+                        if(SPPF_trees[i][k].has(key))
+                        {
+                            SPPF_trees[i][k].delete(key);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Sort the nodes in ascending order according to start and end indices
+    for(let i = 0; i <= outerArrayLastIndex; i++)
+    {
+        innerArrayLastIndex = SPPF_trees[i].length - 1;
+        for(let j = 0; j <= innerArrayLastIndex; j++)
+        {
+            let theSet = SPPF_trees[i][j];
+            let theNewSet = new Set();
+            while(theSet.size)
+            {
+                let iterator = theSet.values();
+                let nodeToCompare = null;
+                for(const key of iterator)
+                {    
+                    let node;
+                    // Find the start and end indices of the next node
+                    if(SPPFnodes.has(key)) // This is a non-terminal if the node is found in SPPFnodes as it only contains non-terminals
+                    {
+                        node = SPPFnodes.get(key);
+                    }
+                    else // This is terminal, we need to search for the parent and then get the indices of the correct child - a bit more complex as SPPFnodes does not contain children
+                    {
+                        // Start searching the sets above
+                        for(let k = j - 1; k >= 0 ; k--)
+                        {
+                            let aSetAbove = SPPF_trees[i][k];
+                            let itsIterator = aSetAbove.values();
+                            let childFound = false;
+                            for(const itsKey of itsIterator)
+                            {
+                                if(SPPFnodes.has(itsKey))
+                                {
+                                    let possibleParentsNode = SPPFnodes.get(itsKey);
+                                    if(possibleParentsNode.hasChild(key))
+                                    {
+                                        node = possibleParentsNode.getChild(key);
+                                        childFound = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if(childFound) break;
+                        }
+                    }
+                    if(nodeToCompare === null) nodeToCompare = node;
+                    else
+                    {
+                        if(node.i < nodeToCompare.i)
+                        {
+                            nodeToCompare = node;
+                        } 
+                    }    
+                }
+                theNewSet.add(nodeToCompare.toString());
+                theSet.delete(nodeToCompare.toString());
+                nodeToCompare = null;
+            }
+            SPPF_trees[i][j] = theNewSet;            
+        }
+    }
+
+    console.log("Tree after sorting and pruning:")
+    console.log(writeOutSPPFtreesKeys(SPPF_trees));
 }
 
 class SPPFnode
@@ -138,6 +245,54 @@ class SPPFnode
         }
     }
 
+    hasChild(key)
+    {
+        if(this._families.size > 0)
+        {
+            let childFound = false;
+            let iterator = this._families.values();
+            for(const family of iterator)
+            {
+                if(family instanceof BinaryFamily)
+                {
+                    if(family.node2.toString() == key) 
+                    {
+                        return true;
+                    }
+                }
+                if(family.node.toString() == key) 
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    getChild(key)
+    {
+        if(this._families.size > 0)
+        {
+            let childFound = false;
+            let iterator = this._families.values();
+            for(const family of iterator)
+            {
+                if(family instanceof BinaryFamily)
+                {
+                    if(family.node2.toString() == key) 
+                    {
+                        return family.node2;
+                    }
+                }
+                if(family.node.toString() == key) 
+                {
+                    return family.node;
+                }
+            }
+        }
+        return null;
+    }
+
     // Is equal - meaning has the same label and start index and end index.
     isEqual(sppfNode)
     {
@@ -175,7 +330,7 @@ class SPPFnode
 
     renderNode()
     {
-        console.log("Rendered node " + this._label + ". It has now " + this._families.size + " families.");
+        //console.log("Rendered node " + this._label + ". It has now " + this._families.size + " families.");
 
         let svgArea = document.getElementById("svgImgArea");
 
@@ -378,5 +533,31 @@ function copySPPFnodesMap() {
         SPPFNodes_copy.set(newNode.toString(), newNode);
     });
     return SPPFNodes_copy;
+}
+
+function writeOutSPPFtreesKeys(theTree)
+{
+    let outerArrayLastIndex = theTree.length - 1;
+    let innerArrayLastIndex;
+    let theString = "";
+    for(let i = 0; i <= outerArrayLastIndex; i++)
+    {
+        theString += "[\n";
+        innerArrayLastIndex = theTree[i].length - 1;
+        for(let j = 0; j <= innerArrayLastIndex; j++)
+        {
+            theString += "[";
+            let theSet = theTree[i][j];
+            let iterator = theSet.values();
+            for(const key of iterator)
+            {    
+                theString += key + ", ";
+            }
+            theString += "]\n";
+        }
+
+        theString += "]";
+    }
+    return theString;
 }
 
