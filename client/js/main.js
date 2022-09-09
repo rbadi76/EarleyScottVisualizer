@@ -579,8 +579,16 @@ function addToSPPFnodes(theArray)
             node.renderNode(); 
         });
 
-        determineCurrentSPPFstructure();
+        let SPPF_trees = determineCurrentSPPFstructure();
+
+        drawTrees(SPPF_trees);
     }
+}
+
+function drawTrees(SPPF_trees) {
+    let numOfTreeAreas = SPPF_trees.length;
+    // TODO: Implement next week.
+
 }
 
 function getFamiliesFromV_withNodesArray(familiesArray, newNode)

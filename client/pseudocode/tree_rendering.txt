@@ -1,0 +1,80 @@
+PSEUDOCODE FOR TREE STRUCTURE
+
+Start with creating a data structure on which to base the actual tree rendering:
+
+Copy the SPPFNodes map, call it SPPFNodes_copy.
+
+If SPPFNodes_copy is not empty:
+    Create an array, call it SPPF_trees.
+    #R1 Add an array to it (outer container).
+    push an array (inner container)
+    push the key of the node at the bottom of SPPFNodes_copy to the inner container.
+    If the node has children, for the first child push an array to the outer container.
+    for each child push its key to the inner container.
+    Remove the parent node from SPPFNodes_copy
+    
+    #R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
+    and and for each node key there check for children in those nodes contained in SPPFNodes_copy 
+    If any node has children, for the first child push an array to the outer container.
+    for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
+    Remove the parent node from SPPFNodes_copy
+    If SPPFNodes_copy is empty stop.
+    Otherwise check if the last inner array has been checked for children
+    If yes and goto #R1
+    If no goto #R2
+
+    Finally remove all duplicate terminals at upper levels, leaving them at the leaves and remove all duplicate non-terminal leaves leaving the top most
+    
+    
+     
+PSEUDOCODE FOR DRAWING THE TREE BASED ON THE STRUCTURE ABOVE
+
+Find the maximum width of each tree row in each tree in SPPF_trees
+    by adding all (node.toString().length * charWidth) + (some margin * 2) for each node in a row.
+    calculate a height for each node based on the width. Save the height of the biggest node as a max_height for the row.
+Find the maximum height of each tree in each tree in SPPF_trees
+    by adding together all max_height values of each row.
+
+create row array
+for each tree
+    if row is empty
+        add a tree to it.
+    else
+        check if there is room for the current tree.
+        if yes, then add the tree
+        else create a new row and add the tree to it.
+
+For each row
+    If the tree is too wide for the row. Shrink it and render it.
+    Else render the row.
+
+
+
+--- 
+Rendering the row
+
+Split the row into as many abstract areas as there are trees in the rows.
+Each area has the same height (height of the tallest tree)
+but each area has the needed width as each tree requires.
+
+For each area render the tree
+
+---
+
+Rendering the tree.
+
+Split the area into tree rows (according to the number of sets in the inner array of SPPF_trees)
+for each node in each row check if any of them has a family.length > 1
+    if so add one narrow row below the row being checked.
+
+Render each node in each row such that there is sufficient and equal space between each node.
+For each narrow row add as many small circles as there are families below each node above if it has families > 1
+
+Draw lines from each node such that 
+    if it has families.size > 1
+        Draw a line to the corresponding small circle from the node
+        Draw lines from each circle to the nodes (one or two) indicated by the family it corresponds to
+    if it has families.size == 1
+        Draw a line to each node (one or two) straight from the original. 
+
+

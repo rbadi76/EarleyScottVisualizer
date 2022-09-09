@@ -1,3 +1,8 @@
+const CHAR_WIDTH = 8; // In pixels
+const NODE_MARGIN_LR = 20; // Left and right margins pixels.
+const NODE_MARGIN_TB = 10; // Top and bottom margins in pixels.
+const HEIGHT_FACTOR = 0.3; // Factor for calculating the height of each node which is drawn.
+
 function determineCurrentSPPFstructure()
 {
     // Deep copy with families
@@ -152,36 +157,7 @@ function determineCurrentSPPFstructure()
                 let nodeToCompare = null;
                 for(const key of iterator)
                 {    
-                    let node;
-                    // Find the start and end indices of the next node
-                    if(SPPFnodes.has(key)) // This is a non-terminal if the node is found in SPPFnodes as it only contains non-terminals
-                    {
-                        node = SPPFnodes.get(key);
-                    }
-                    else // This is terminal, we need to search for the parent and then get the indices of the correct child - a bit more complex as SPPFnodes does not contain children
-                    {
-                        // Start searching the sets above
-                        for(let k = j - 1; k >= 0 ; k--)
-                        {
-                            let aSetAbove = SPPF_trees[i][k];
-                            let itsIterator = aSetAbove.values();
-                            let childFound = false;
-                            for(const itsKey of itsIterator)
-                            {
-                                if(SPPFnodes.has(itsKey))
-                                {
-                                    let possibleParentsNode = SPPFnodes.get(itsKey);
-                                    if(possibleParentsNode.hasChild(key))
-                                    {
-                                        node = possibleParentsNode.getChild(key);
-                                        childFound = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if(childFound) break;
-                        }
-                    }
+                    let node = getNodeFromKey(key, j, SPPF_trees[i]);
                     if(nodeToCompare === null) nodeToCompare = node;
                     else
                     {
@@ -201,6 +177,8 @@ function determineCurrentSPPFstructure()
 
     console.log("Tree after sorting and pruning:")
     console.log(writeOutSPPFtreesKeys(SPPF_trees));
+
+    return SPPF_trees;
 }
 
 class SPPFnode
@@ -338,57 +316,6 @@ class SPPFnode
         if(this._label.indexOf("::=") > 0) sanitizedLabel = this.sanitizeLabel(this._label);
         let newId = sanitizedLabel + "_" + this._i + "_" + this._j;
 
-        // Check if node is already rendered by checking if an element with an id based on the label exists.
-        // My idea now is to first let them appear in the corner and after all have been put on the svg element
-        // Position them based on position in the map and the number of nodes present. Will think better of it tomorrow.
-
-        /*
-        All render node does is create the ellipse and text and give them an ID to be referrence later IF it
-        does not exist already.
-
-        Another function, not in this class takes care of positioning them in the following manner:
-
-        It counts the number of nodes in the map (nodeCount)
-        It goes through the map in reverse order (top down from the SPPFs perspective).
-
-        First determine how many disjoint trees we have and maximum number of levels of any tree. 
-        This is done in the following manner:
-
-        Copy the SPPFNodes map, call it SPPFNodes_copy.
-        If SPPFNodes_copy is not empty:
-            Create an array, call it SPPF_trees.
-            #R1 Add an array to it (outer container).
-            push an array (inner container)
-            push the key of the node at the bottom of SPPFNodes_copy to the inner container.
-            If the node has children, for the first child push an array to the outer container.
-            for each child push its key to the inner container.
-            Remove the parent node from SPPFNodes_copy
-            
-            #R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
-            and and for each node key there check for children in those nodes contained in SPPFNodes_copy 
-            If any node has children, for the first child push an array to the outer container.
-            for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
-            Remove the parent node from SPPFNodes_copy
-            If SPPFNodes_copy is empty stop.
-            Otherwise check if the last inner array has been checked for children
-            If yes and goto #R1
-            If no goto #R2
-
-            Finally remove all duplicate terminals at upper levels, leaving them at the leaves and remove all duplicate non-terminal leaves leaving the top most.
-
-            When this is done the number of outer arrays in SPPF_trees determines the number of trees/areas for trees
-            The number of inner arrays tells you how many levels each tree has and the number of nodes in each level.
-            This should aid you in drawing the nodes.
-
-            Later we draw the connectors. How to do that will be determined later.
-            Also later we will calculate the positioning based on the SPPF_trees array.
-
-            On Monday Try stepping through this pseudocode by using Tree rendering algrorithm test.txt and see if it works as expected.
-            --> Done. Small changes need.
-        
-        */
-
-
         if(!document.getElementById(newId))
         {
             let middleOfWidth;
@@ -461,6 +388,11 @@ class SPPFnode
         return this._families;
     }
 
+    get height()
+    {
+        return (this.toString().length * CHAR_WIDTH) * HEIGHT_FACTOR;
+    }
+
     toString()
     {
         return "(" + this._label + ", " + this._i + ", " + this._j + ")";
@@ -508,7 +440,44 @@ class BinaryFamily extends UnaryFamily
         "(" + this._node2.toString() + ", " + this._node.toString() + ")";
     }
 }
- 
+
+/*
+*   Get the node by index from SPPFnodes.
+*/
+function getNodeFromKey(key, rowIdx, arrayOfSets) {
+    let node;
+    // Find the start and end indices of the next node
+    if (SPPFnodes.has(key)) // This is a non-terminal if the node is found in SPPFnodes as it only contains non-terminals
+    {
+        node = SPPFnodes.get(key);
+    }
+    else // This is terminal, we need to search for the parent and then get the indices of the correct child - a bit more complex as SPPFnodes does not contain children
+    {
+        // Start searching the sets above
+        for (let k = rowIdx - 1; k >= 0; k--) {
+            let aSetAbove = arrayOfSets[k];
+            let itsIterator = aSetAbove.values();
+            let childFound = false;
+            for (const itsKey of itsIterator) {
+                if (SPPFnodes.has(itsKey)) {
+                    let possibleParentsNode = SPPFnodes.get(itsKey);
+                    if (possibleParentsNode.hasChild(key)) {
+                        node = possibleParentsNode.getChild(key);
+                        childFound = true;
+                        break;
+                    }
+                }
+            }
+            if (childFound)
+                break;
+        }
+    }
+    return node;
+}
+
+/*
+*   For deep-copying SPPFnodesMap
+*/ 
 function copySPPFnodesMap() {
     let SPPFNodes_copy = new Map();
     SPPFnodes.forEach(function (value, key) {
@@ -535,6 +504,10 @@ function copySPPFnodesMap() {
     return SPPFNodes_copy;
 }
 
+/* 
+*   Used for debugging as console.log writes a reference to the object which may change. This writes out a snapshot for a given
+*   point in time.
+*/
 function writeOutSPPFtreesKeys(theTree)
 {
     let outerArrayLastIndex = theTree.length - 1;
@@ -561,3 +534,54 @@ function writeOutSPPFtreesKeys(theTree)
     return theString;
 }
 
+class SVG_area
+{
+    constructor(maxWidth)
+    {
+        this._treeRows = [];
+        this._maxWidth = maxWidth;
+
+    }
+}
+
+class TreeRowArea
+{
+    constructor()
+    {
+        this._trees = [];
+    }
+}
+
+class TreeArea
+{
+    constructor(arrayOfSets)
+    {
+        this._width = 0;
+        this._height = 0;
+        this._arrayOfSets = arrayOfSets;
+    }
+
+    get width()
+    {
+        let maxWidth = 0;
+        this._arrayOfSets.forEach(set => {
+            let iterator = set.values();
+            let rowWidth = 0;
+            for(const key of iterator)
+            {
+                let nodeWidth = (key.length * CHAR_WIDTH) + (NODE_MARGIN_LR * 2);
+                rowWidth += nodeWidth;
+            }
+            if(maxWidth < rowWidth) maxWidth = rowWidth;
+        });
+        return maxWidth;
+    }
+
+    get height()
+    {
+        // Calculate the height of the area according to pseudocode using the new member property of SPPFnode class (height)
+        return 0; // To be changed
+    }
+
+
+}
