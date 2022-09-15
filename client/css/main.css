@@ -16,12 +16,26 @@ canvas{
 }
 
 /* for testing */
-#svgImgArea{
+/*#svgImgArea{
     border: solid red 1px;
-}
+}*/
 
 ellipse{
     fill:yellow;
     stroke:purple;
     stroke-width: 2;
+}
+
+.treeAreaRowRect{
+    fill:rgb(53, 54, 58);
+    stroke-width:3;
+    stroke:rgb(77, 72, 128);
+    opacity: 0.3;
+}
+
+.treeAreaRect{
+    fill:rgb(53, 54, 58);
+    stroke-width:1;
+    stroke:rgb(170, 32, 85);
+    opacity: 0.2;
 }

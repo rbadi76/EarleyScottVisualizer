@@ -11,6 +11,8 @@ const helpTextGrammarWords = "Create grammar on the form S => word1 word2 | word
                              + " single uppercase characters are non-terminals if found on LHS" 
                              + " of a production.";
 
+const  SPPF_NODES_AREA_PADDING_ALL = 16;
+
 let readyToParse = true;    // To know how to continue (Start again if done or continue when in middle of parsing)
 let getStatusTimeout;        // To know what timeout to send to clearTimeout when pausing
 let createParserTimeout;
@@ -127,6 +129,9 @@ function validatePrepareAndSend()
         let rect = tokens.getBoundingClientRect();
         let ctrlButtons = document.getElementById("ctrlButtons");
         ctrlButtons.style.left = rect.left + "px";
+
+        // Remove old trees if they were shown previously
+        removeOldTrees();
 
         // Set the size of the SVG for the nodes
         let widthOfSPPFnodesArea = document.getElementById("SPPFnodesArea").offsetWidth
@@ -574,21 +579,47 @@ function addToSPPFnodes(theArray)
         // Need to think this through
         // Leaning towards adding to the existing rendering
 
-        // Iterate through each item in the map and render each node.
-        SPPFnodes.forEach(node => {
-            node.renderNode(); 
-        });
-
         let SPPF_trees = determineCurrentSPPFstructure();
 
+        removeOldTrees()
         drawTrees(SPPF_trees);
     }
 }
 
 function drawTrees(SPPF_trees) {
-    let numOfTreeAreas = SPPF_trees.length;
-    // TODO: Implement next week.
+    let parentNodeArea = document.getElementById("SPPFnodesArea");
+    let svgArea = new SVG_area(parentNodeArea.offsetWidth - (SPPF_NODES_AREA_PADDING_ALL * 2));
+    let treeAreaRow = new TreeAreaRow();
+    svgArea.addTreeAreaRow(treeAreaRow);
+    SPPF_trees.forEach(tree => {
+        let treeArea = new TreeArea(tree);
+        if(svgArea.lastTreeAreaRow.treeCount == 0)
+        {
+            svgArea.lastTreeAreaRow.addTreeArea(treeArea);
+        }
+        else
+        {
+            if(svgArea.lastTreeAreaRow.availableWidth >= treeArea.width)
+            {
+                svgArea.lastTreeAreaRow.addTreeArea(treeArea);
+            }
+            else
+            {
+                let newTreeAreaRow = new TreeAreaRow();
+                newTreeAreaRow.addTreeArea(treeArea);
+                svgArea.addTreeAreaRow(newTreeAreaRow);
+            }
+        }
+    });
 
+    svgArea.render();
+
+}
+
+function removeOldTrees()
+{
+    let svgArea = document.getElementById("svgImgArea");
+    svgArea.innerHTML = "";
 }
 
 function getFamiliesFromV_withNodesArray(familiesArray, newNode)

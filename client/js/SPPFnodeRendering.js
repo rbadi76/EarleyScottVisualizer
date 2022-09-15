@@ -1,7 +1,11 @@
-const CHAR_WIDTH = 8; // In pixels
+const CHAR_WIDTH = 12; // In pixels
 const NODE_MARGIN_LR = 20; // Left and right margins pixels.
 const NODE_MARGIN_TB = 10; // Top and bottom margins in pixels.
 const HEIGHT_FACTOR = 0.3; // Factor for calculating the height of each node which is drawn.
+const TREE_AREA_ROW_PADDING_LR = 10;
+const SVG_AREA_PADDING_ALL = 10;
+
+
 
 function determineCurrentSPPFstructure()
 {
@@ -306,57 +310,42 @@ class SPPFnode
         else return false;
     }
 
-    renderNode()
+    renderNode(x, y)
     {
-        //console.log("Rendered node " + this._label + ". It has now " + this._families.size + " families.");
-
         let svgArea = document.getElementById("svgImgArea");
 
         let sanitizedLabel;
         if(this._label.indexOf("::=") > 0) sanitizedLabel = this.sanitizeLabel(this._label);
         let newId = sanitizedLabel + "_" + this._i + "_" + this._j;
 
+        let newEllipse;
+        let newEllipseLabelText;
+        let newEllipseLabel;
         if(!document.getElementById(newId))
         {
-            let middleOfWidth;
-            let middleOfHeight;
-            if(!document.getElementsByName("ELLIPSE").length)
-            {
-                middleOfWidth = svgArea.clientWidth / 2;
-                middleOfHeight = svgArea.clientHeight / 2;
-            }
-
-            let cx = middleOfWidth;
-            let cy = middleOfHeight;
-
-            let text_x = middleOfWidth;
-            let text_y = middleOfHeight;
-            
-
-            // If it does not, render it by creating an SVG elipse with label as text
-            let newEllipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        // If it does not, render it by creating an SVG elipse with label as text
+            newEllipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
             newEllipse.setAttribute("id", newId);
-            newEllipse.setAttribute("cx", cx);
-            newEllipse.setAttribute("cy", cy);
-            newEllipse.setAttribute("rx", 60);
-            newEllipse.setAttribute("ry", 25);
-
-            let newEllipseLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            newEllipseLabel.setAttribute("x", text_x);
-            newEllipseLabel.setAttribute("y", text_y);
+            newEllipseLabelText = document.createTextNode("{" + this._label + ", " + this._i + ", " + this._j + "}");
+            newEllipseLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
             newEllipseLabel.setAttribute("id", newId + "_text");
-
-            let newEllipseLabelText = document.createTextNode("{" + this._label + ", " + this._i + ", " + this._j + "}");
             newEllipseLabel.appendChild(newEllipseLabelText);
-
-
             svgArea.appendChild(newEllipse);
             svgArea.appendChild(newEllipseLabel);
-            //svgArea.appendChild("Sorry, your browser does not support inline SVG.");
-        }      
-
-        // Else check if children have been rendered
-        //      If they have not, render each child not already rendered and draw a line between parent and child.
+        }
+        else
+        {
+            newEllipse = document.getElementById(newId);
+            newEllipseLabel = document.getElementById(newId + "_text")
+        } 
+        
+        newEllipse.setAttribute("cx", x);
+        newEllipse.setAttribute("cy", y);
+        newEllipse.setAttribute("rx", this.width);
+        newEllipse.setAttribute("ry", this.height);
+       
+        newEllipseLabel.setAttribute("x", x);
+        newEllipseLabel.setAttribute("y", y);
     }
 
     sanitizeLabel(label) {
@@ -391,6 +380,11 @@ class SPPFnode
     get height()
     {
         return (this.toString().length * CHAR_WIDTH) * HEIGHT_FACTOR;
+    }
+
+    get width()
+    {
+        return this.toString().length * CHAR_WIDTH;
     }
 
     toString()
@@ -538,17 +532,105 @@ class SVG_area
 {
     constructor(maxWidth)
     {
-        this._treeRows = [];
+        this._treeAreaRows = [];
         this._maxWidth = maxWidth;
+    }
+
+    addTreeAreaRow(treeAreaRow)
+    {
+        treeAreaRow.width = this._maxWidth - (TREE_AREA_ROW_PADDING_LR * 2);
+        this._treeAreaRows.push(treeAreaRow);
+    }
+
+    get lastTreeAreaRow()
+    {
+        return this._treeAreaRows[this._treeAreaRows.length - 1];
+    }
+
+    get treeAreaRows()
+    {
+        return this._treeAreaRows;
+    }
+
+    render()
+    {
+        let svgImgArea = document.getElementById("svgImgArea");
+        svgImgArea.setAttribute("width", this._maxWidth);
+        let svgImgAreaHeight = 0;
+        this._treeAreaRows.forEach(treeAreaRow => {
+            svgImgAreaHeight += treeAreaRow.height;
+        });
+        svgImgArea.setAttribute("height", svgImgAreaHeight + (SVG_AREA_PADDING_ALL * 2));
+
+        let outBBBox = svgImgArea.getBoundingClientRect(); 
+        let nextX = SVG_AREA_PADDING_ALL;
+        let nextY = SVG_AREA_PADDING_ALL;
+        let nextWidth = outBBBox.width - (SVG_AREA_PADDING_ALL * 2);
+        this._treeAreaRows.forEach(treeAreaRow => {
+            treeAreaRow.render(nextX, nextY, nextWidth);
+            nextY = treeAreaRow.height + nextY;
+        });
 
     }
 }
 
-class TreeRowArea
+class TreeAreaRow
 {
     constructor()
     {
-        this._trees = [];
+        this._treeAreas = [];
+        this._width = 0;
+    }
+
+    addTreeArea(treeArea)
+    {
+        this._treeAreas.push(treeArea);
+    }
+
+    get height()
+    {
+        let maxHeight = 0;
+        this._treeAreas.forEach(treeArea => {
+            let height = treeArea.height;
+            if(maxHeight < height) maxHeight = height;
+        });
+        return maxHeight;
+    }
+
+    get treeCount()
+    {
+        return this._treeAreas.length;
+    }
+
+    set width(newWidth)
+    {
+        this._width = newWidth;
+    }
+
+    get availableWidth()
+    {
+        let usedSpace = 0;
+        this._treeAreas.forEach(treeArea => {
+            usedSpace += treeArea.width;
+        });
+        return this._width - usedSpace;
+    }
+
+    render(x, y, width)
+    {
+        let svgImgArea = document.getElementById("svgImgArea");  
+        let newRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        newRect.setAttribute("class", "treeAreaRowRect");
+        newRect.setAttribute("x", x);
+        newRect.setAttribute("y", y);
+        newRect.setAttribute("width", width);
+        newRect.setAttribute("height", this.height);
+        svgImgArea.appendChild(newRect);
+        x = x + this.availableWidth / 2;
+        this._treeAreas.forEach(treeArea => {
+            treeArea.render(x, y);
+            x += treeArea.width;
+        });
     }
 }
 
@@ -563,25 +645,86 @@ class TreeArea
 
     get width()
     {
-        let maxWidth = 0;
-        this._arrayOfSets.forEach(set => {
-            let iterator = set.values();
-            let rowWidth = 0;
-            for(const key of iterator)
-            {
-                let nodeWidth = (key.length * CHAR_WIDTH) + (NODE_MARGIN_LR * 2);
-                rowWidth += nodeWidth;
-            }
-            if(maxWidth < rowWidth) maxWidth = rowWidth;
-        });
-        return maxWidth;
+        if(this._width == 0)
+        {
+            let maxWidth = 0;
+            this._arrayOfSets.forEach(set => {
+                let iterator = set.values();
+                let rowWidth = 0;
+                for(const key of iterator)
+                {
+                    let nodeWidth = (key.length * CHAR_WIDTH) + (NODE_MARGIN_LR * 2);
+                    rowWidth += nodeWidth;
+                }
+                if(maxWidth < rowWidth) maxWidth = rowWidth;
+            });
+            this._width = maxWidth;
+            return maxWidth;
+        }
+        else return this._width;
+
     }
 
     get height()
     {
-        // Calculate the height of the area according to pseudocode using the new member property of SPPFnode class (height)
-        return 0; // To be changed
+        if(this._height == 0)
+        {
+            // Calculate the height of the area according to pseudocode using the new member property of SPPFnode class (height)
+            let totalHeight = 0;
+            let rowIdx = 0;
+            this._arrayOfSets.forEach(set => {
+                let iterator = set.values();
+                let rowHeight = 0;
+
+                for(const key of iterator)
+                {
+                    let node = getNodeFromKey(key, rowIdx, this._arrayOfSets);
+                    if(rowHeight < node.height) rowHeight = node.height;
+                }
+                totalHeight = totalHeight + rowHeight + (NODE_MARGIN_TB * 2);
+                rowIdx++;
+            });
+            
+            this._height = totalHeight;
+            return totalHeight;
+        }
+        else return this._height;
+
     }
 
+    render(x, y)
+    {
+        let svgImgArea = document.getElementById("svgImgArea");  
+        let newRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        newRect.setAttribute("class", "treeAreaRect");
+        newRect.setAttribute("x", x);
+        newRect.setAttribute("y", y);
+        newRect.setAttribute("width", this.width);
+        newRect.setAttribute("height", this.height);
+        svgImgArea.appendChild(newRect);
+        let rowIdx = 0;
+        this._arrayOfSets.forEach(set => {
+            // Find the available space for each row
+            let widthForAllNodes = 0;
+            let maxNodeHeight = 0;
+            let iterator = set.values();
+            for (const itsKey of iterator) 
+            {
+                let node = getNodeFromKey(itsKey, rowIdx, this._arrayOfSets);
+                if(node.height > maxNodeHeight) maxNodeHeight = node.height;
+            }
 
+            // Now we can position and render the nodes
+            iterator = set.values();
+            for (const itsKey of iterator) 
+            {
+                let node = getNodeFromKey(itsKey, rowIdx, this._arrayOfSets);
+                node.renderNode(x + NODE_MARGIN_LR, y + ((maxNodeHeight - node.height) / 2));
+                x = x + node.width + NODE_MARGIN_LR * 2;
+            }
+
+            y = y + maxNodeHeight + NODE_MARGIN_TB;
+            rowIdx++;
+        });
+    }
 }

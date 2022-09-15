@@ -35,18 +35,18 @@ Find the maximum width of each tree row in each tree in SPPF_trees
 Find the maximum height of each tree in each tree in SPPF_trees
     by adding together all max_height values of each row.
 
-create row array
+create TreeAreaRow
 for each tree
-    if row is empty
-        add a tree to it.
+    if TreeAreaRow is empty
+        add a TreeArea to it containing a tree.
     else
-        check if there is room for the current tree.
-        if yes, then add the tree
-        else create a new row and add the tree to it.
+        check if there is room for a TreeArea with the current tree.
+        if yes, then add the TreeArea to the TreeAreaRow
+        else create a new TreeAreaRow and add the TreeArea to it.
 
-For each row
-    If the tree is too wide for the row. Shrink it and render it.
-    Else render the row.
+For each TreeAreaRow
+    If the TreeArea/tree is too wide for the TreeAreaRow. Shrink it and render it.
+    Else render the TreeAreaRow.
 
 
 
