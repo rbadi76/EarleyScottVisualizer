@@ -1,6 +1,8 @@
-const CHAR_WIDTH = 12; // In pixels
+const CHAR_WIDTH = 6; // In pixels
 const NODE_MARGIN_LR = 20; // Left and right margins pixels.
 const NODE_MARGIN_TB = 10; // Top and bottom margins in pixels.
+const NODE_PADDING_LR = 10; // Left and right padding within the node
+const NODE_PADDING_TB = 10; // Top and bottom padding within the node
 const HEIGHT_FACTOR = 0.3; // Factor for calculating the height of each node which is drawn.
 const TREE_AREA_ROW_PADDING_LR = 10;
 const SVG_AREA_PADDING_ALL = 10;
@@ -339,13 +341,15 @@ class SPPFnode
             newEllipseLabel = document.getElementById(newId + "_text")
         } 
         
-        newEllipse.setAttribute("cx", x);
-        newEllipse.setAttribute("cy", y);
-        newEllipse.setAttribute("rx", this.width);
-        newEllipse.setAttribute("ry", this.height);
+        newEllipse.setAttribute("cx", x + this.width / 2);
+        newEllipse.setAttribute("cy", y + this.height / 2);
+        newEllipse.setAttribute("rx", this.width / 2);
+        newEllipse.setAttribute("ry", this.height / 2);
        
-        newEllipseLabel.setAttribute("x", x);
-        newEllipseLabel.setAttribute("y", y);
+        let nelBBox = newEllipseLabel.getBoundingClientRect();
+
+        newEllipseLabel.setAttribute("x", x + NODE_PADDING_LR);
+        newEllipseLabel.setAttribute("y", y + NODE_PADDING_TB + ((this.height - nelBBox.height) / 2 + 5));
     }
 
     sanitizeLabel(label) {
@@ -379,12 +383,12 @@ class SPPFnode
 
     get height()
     {
-        return (this.toString().length * CHAR_WIDTH) * HEIGHT_FACTOR;
+        return helperGetNodeHeight(this.toString());
     }
 
     get width()
     {
-        return this.toString().length * CHAR_WIDTH;
+        return helperGetNodeWidth(this.toString());
     }
 
     toString()
@@ -653,7 +657,7 @@ class TreeArea
                 let rowWidth = 0;
                 for(const key of iterator)
                 {
-                    let nodeWidth = (key.length * CHAR_WIDTH) + (NODE_MARGIN_LR * 2);
+                    let nodeWidth = helperGetNodeWidth(key) + (NODE_MARGIN_LR * 2);
                     rowWidth += nodeWidth;
                 }
                 if(maxWidth < rowWidth) maxWidth = rowWidth;
@@ -679,9 +683,9 @@ class TreeArea
                 for(const key of iterator)
                 {
                     let node = getNodeFromKey(key, rowIdx, this._arrayOfSets);
-                    if(rowHeight < node.height) rowHeight = node.height;
+                    if(rowHeight < helperGetNodeHeight(key) + (NODE_MARGIN_TB * 2)) rowHeight = helperGetNodeHeight(key) + (NODE_MARGIN_TB * 2);
                 }
-                totalHeight = totalHeight + rowHeight + (NODE_MARGIN_TB * 2);
+                totalHeight += rowHeight;
                 rowIdx++;
             });
             
@@ -719,7 +723,7 @@ class TreeArea
             for (const itsKey of iterator) 
             {
                 let node = getNodeFromKey(itsKey, rowIdx, this._arrayOfSets);
-                node.renderNode(x + NODE_MARGIN_LR, y + ((maxNodeHeight - node.height) / 2));
+                node.renderNode(x + NODE_MARGIN_LR, y + NODE_MARGIN_TB);
                 x = x + node.width + NODE_MARGIN_LR * 2;
             }
 
@@ -727,4 +731,14 @@ class TreeArea
             rowIdx++;
         });
     }
+}
+
+function helperGetNodeWidth(key)
+{
+    return (key.length * CHAR_WIDTH) + (NODE_PADDING_LR * 2);
+}
+
+function helperGetNodeHeight(key)
+{
+    return (key.length * CHAR_WIDTH) * HEIGHT_FACTOR + (NODE_PADDING_TB * 2);
 }
