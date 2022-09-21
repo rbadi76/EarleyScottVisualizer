@@ -35,9 +35,10 @@ class TreeArea {
 
                 for (const key of iterator) {
                     let node = getNodeFromKey(key, rowIdx, this._arrayOfSets);
-                    if (rowHeight < helperGetNodeHeight(key) + (NODE_MARGIN_TB * 2))
-                        rowHeight = helperGetNodeHeight(key) + (NODE_MARGIN_TB * 2);
+                    if (rowHeight < helperGetNodeHeight(key) + (NODE_MARGIN_TB * 2) + (NODE_ROW_MARGIN_TB * 2))
+                        rowHeight = helperGetNodeHeight(key) + (NODE_MARGIN_TB * 2) + (NODE_ROW_MARGIN_TB * 2);
                 }
+
                 totalHeight += rowHeight;
                 rowIdx++;
             });
@@ -80,11 +81,11 @@ class TreeArea {
             // Calculate the position of the first node in the row
             let nodePosX = x + (this.width - widthForAllNodesInTheRow) / 2;
 
-            y = y + NODE_ROW_MARGIN_TB;
+            y = y + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB;
 
             for (const itsKey of iterator) {
                 let node = getNodeFromKey(itsKey, rowIdx, this._arrayOfSets);
-                node.renderNode(nodePosX + NODE_MARGIN_LR, y + NODE_MARGIN_TB + (maxNodeHeight - node.height) / 2);
+                node.renderNode(nodePosX + NODE_MARGIN_LR, y + (maxNodeHeight - node.height) / 2);
                 nodePosX = nodePosX + node.width + NODE_MARGIN_LR * 2;
             }
 
