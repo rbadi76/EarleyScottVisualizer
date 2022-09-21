@@ -80,17 +80,56 @@ class TreeArea {
             // x is now the top left corner of the area.
             // Calculate the position of the first node in the row
             let nodePosX = x + (this.width - widthForAllNodesInTheRow) / 2;
-
             y = y + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB;
 
             for (const itsKey of iterator) {
                 let node = getNodeFromKey(itsKey, rowIdx, this._arrayOfSets);
-                node.renderNode(nodePosX + NODE_MARGIN_LR, y + (maxNodeHeight - node.height) / 2);
+                let nodeYPos = y + (maxNodeHeight - node.height) / 2;
+                node.renderNode(nodePosX + NODE_MARGIN_LR, nodeYPos);
+
+                // Draw packed nodes and lines
+                if(node.familiesCount > 1)
+                {
+                    let nodeAreaStartX = nodePosX; // - NODE_MARGIN_LR;
+                    let nodeAreaSegmentSizeX = (node.width + (NODE_MARGIN_LR * 2)) / (node.familiesCount * 2) - PACKED_NODE_R;
+                    let packedNodeX = nodeAreaStartX + nodeAreaSegmentSizeX;
+                    let packedNodeY = nodeYPos + node.height + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB - PACKED_NODE_R;
+                    for(let i = 0; i < node.familiesCount; i++)
+                    {
+                        this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, node.toString() + "_f" + i + 1)
+                        packedNodeX += nodeAreaSegmentSizeX * 2 + 2 * PACKED_NODE_R;
+                    }
+                }
+
                 nodePosX = nodePosX + node.width + NODE_MARGIN_LR * 2;
             }
 
             y = y + maxNodeHeight + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB;
             rowIdx++;
         });
+    }
+
+    /*
+    *   Renders a packed node. Variables x and y denote position of top left corner's bounding box.
+    */
+    renderPackedNode(x, y, r, id)
+    {
+        let svgArea = document.getElementById("svgImgArea");
+
+        let circle;
+        if (!document.getElementById(id)) {
+            // If it does not, render it by creating an SVG elipse with label as text
+            circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("id", id);
+            svgArea.appendChild(circle);
+        }
+
+        else {
+            circle = document.getElementById(newId);
+        }
+
+        circle.setAttribute("cx", x + r);
+        circle.setAttribute("cy", y + r);
+        circle.setAttribute("r", r);
     }
 }

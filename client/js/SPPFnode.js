@@ -17,7 +17,7 @@ class SPPFnode {
 
     }
 
-    familiesCount() {
+    get familiesCount() {
         return this._families.size;
     }
 

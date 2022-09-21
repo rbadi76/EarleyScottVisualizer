@@ -546,7 +546,7 @@ function addToSPPFnodes(theArray)
         {
             let existingNode = SPPFnodes.get(newNode.toString());
             let newNodeWithArrays = getFamiliesFromV_withNodesArray(node[3], newNode);
-            if(existingNode.familiesCount() != newNodeWithArrays.familiesCount())
+            if(existingNode.familiesCount != newNodeWithArrays.familiesCount)
             {
                 SPPFnodes.set(newNode.toString(), newNodeWithArrays);
                 sppfNodesHaveChanged = true;

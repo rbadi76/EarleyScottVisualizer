@@ -6,6 +6,7 @@ const NODE_PADDING_TB = 10; // Top and bottom padding within the node
 const NODE_ROW_MARGIN_TB = 10; // Top and bottom margin between each row of nodes.
 const HEIGHT_FACTOR = 0.3; // Factor for calculating the height of each node which is drawn.
 const SVG_AREA_PADDING_ALL = 10;
+const PACKED_NODE_R = 5; // Radius of packed nodes
 
 /*
 *   Sets up the data structure which is used by the drawing mechanism. After setting it up removes duplicate terminals and non-terminals
