@@ -57,7 +57,6 @@ class SPPFnode {
 
     getChild(key) {
         if (this._families.size > 0) {
-            let childFound = false;
             let iterator = this._families.values();
             for (const family of iterator) {
                 if (family instanceof BinaryFamily) {
@@ -108,10 +107,7 @@ class SPPFnode {
     renderNode(x, y) {
         let svgArea = document.getElementById("svgImgArea");
 
-        let sanitizedLabel = this._label;
-        if (this._label.indexOf("::=") > 0)
-            sanitizedLabel = this.sanitizeLabel(this._label);
-        let newId = sanitizedLabel + "_" + this._i + "_" + this._j;
+        let newId = this.getSanitizedHtmlId();
 
         let newEllipse;
         let newEllipseLabelText;
@@ -142,6 +138,14 @@ class SPPFnode {
 
         newEllipseLabel.setAttribute("x", x + NODE_PADDING_LR);
         newEllipseLabel.setAttribute("y", y + NODE_PADDING_TB + ((this.height - nelBBox.height) / 2 + 5));
+    }
+
+    getSanitizedHtmlId() {
+        let sanitizedLabel = this._label;
+        if (this._label.indexOf("::=") > 0)
+            sanitizedLabel = this.sanitizeLabel(this._label);
+        let newId = sanitizedLabel + "_" + this._i + "_" + this._j;
+        return newId;
     }
 
     sanitizeLabel(label) {

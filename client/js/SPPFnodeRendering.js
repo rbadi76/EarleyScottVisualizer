@@ -20,7 +20,6 @@ function determineCurrentSPPFstructure()
     let SPPF_trees = [];
 
     // R1
-    let lastInnerArrayHasBeenCheckedForChildren = true; // Must be true to begin, will change later.
     while(SPPFnodes_copy.size)
     {
         //console.log("In outer while. SPPFnodes_copy.size=" + SPPFnodes_copy.size)
