@@ -35,7 +35,7 @@ class TreeAreaRow {
     }
 
     render(x, y, width) {
-        let svgImgArea = document.getElementById("svgImgArea");
+        let svgImgArea = document.getElementById(SVG_IMG_ID);
         let newRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         newRect.setAttribute("class", "treeAreaRowRect");
         newRect.setAttribute("x", x);

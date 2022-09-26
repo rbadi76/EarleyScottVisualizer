@@ -18,7 +18,7 @@ class SVG_area {
     }
 
     render() {
-        let svgImgArea = document.getElementById("svgImgArea");
+        let svgImgArea = document.getElementById(SVG_IMG_ID);
         svgImgArea.setAttribute("width", this._maxWidth);
         let svgImgAreaHeight = 0;
         this._treeAreaRows.forEach(treeAreaRow => {

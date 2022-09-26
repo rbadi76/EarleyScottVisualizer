@@ -135,7 +135,7 @@ function validatePrepareAndSend()
 
         // Set the size of the SVG for the nodes
         let widthOfSPPFnodesArea = document.getElementById("SPPFnodesArea").offsetWidth
-        let svgArea = document.getElementById("svgImgArea");
+        let svgArea = document.getElementById(SVG_IMG_ID);
         svgArea.setAttribute("width", widthOfSPPFnodesArea - 30);
     }
 
@@ -618,7 +618,7 @@ function drawTrees(SPPF_trees) {
 
 function removeOldTrees()
 {
-    let svgArea = document.getElementById("svgImgArea");
+    let svgArea = document.getElementById(SVG_IMG_ID);
     svgArea.innerHTML = "";
 }
 

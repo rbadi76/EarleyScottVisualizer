@@ -52,7 +52,7 @@ class TreeArea {
     }
 
     render(x, y) {
-        let svgImgArea = document.getElementById("svgImgArea");
+        let svgImgArea = document.getElementById(SVG_IMG_ID);
         let newRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         newRect.setAttribute("class", "treeAreaRect");
         newRect.setAttribute("x", x);
@@ -89,38 +89,53 @@ class TreeArea {
         // We must iterate again through the sets as we cannot draw the lines and packed nodes until all the nodes have been drawn.
         rowIdx = 0;
         this._arrayOfSets.forEach(set => {
-            // x is now the top left corner of the area.
-            // Calculate the position of the first node in the row
-            //nodePosX = x + (this.width - this.getWidthForAllNodes(set)) / 2;
             maxNodeHeight = this.getMaxNodeHeight(set, rowIdx);
-
             iterator = set.values();
             for(const key of iterator)
             {
+                let svgBBox = document.getElementById(SVG_IMG_ID).getBoundingClientRect();
+                let svgTopLeftPoint = new DOMPoint(svgBBox.x, svgBBox.y);
+                
                 let node = getNodeFromKey(key, rowIdx, this._arrayOfSets);
-                let nodeYPos = document.getElementById(node.getSanitizedHtmlId()).getBoundingClientRect().y 
-                    - document.getElementById("svgImgArea").getBoundingClientRect().y + (maxNodeHeight - node.height) / 2;
+                let nodeBBox = document.getElementById(node.getSanitizedHtmlId()).getBoundingClientRect();
+                let nodeTopLeftPoint = new DOMPoint(nodeBBox.x - svgTopLeftPoint.x, nodeBBox.y - svgTopLeftPoint.y);  // Top left point of node within SVG image
+                let nodeMiddlePoint = new DOMPoint(nodeTopLeftPoint.x + nodeBBox.width / 2, nodeTopLeftPoint.y + nodeBBox.height / 2);          
+                let nodeAreaStartX = nodeTopLeftPoint.x - NODE_MARGIN_LR;
                 if(node.familiesCount > 1)
-                {
-                    let nodeAreaStartX = document.getElementById(node.getSanitizedHtmlId()).getBoundingClientRect().x - document.getElementById("svgImgArea").getBoundingClientRect().x - NODE_MARGIN_LR;
-                    let nodeAreaSegmentSizeX = (node.width + (NODE_MARGIN_LR * 2)) / (node.familiesCount * 2) - PACKED_NODE_R;
+                {    
+                    let nodeAreaSegmentSizeX = (nodeBBox.width + (NODE_MARGIN_LR * 2)) / (node.familiesCount * 2) - PACKED_NODE_R;
                     let packedNodeX = nodeAreaStartX + nodeAreaSegmentSizeX;
-                    let packedNodeY = nodeYPos + node.height + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB - PACKED_NODE_R;
+                    let packedNodeY = nodeTopLeftPoint.y + nodeBBox.height + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB - PACKED_NODE_R;
                     let counter = 1;
                     for(let [key, value] of node.families)
                     {
-                        this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, node.getSanitizedHtmlId() + "_f" + counter);
+                        let idForPackedNode = node.getSanitizedHtmlId() + "_pn" + counter;
+                        this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, idForPackedNode);
+                        
                         // Draw line from packed node to child/children
                         if(value instanceof BinaryFamily)
                         {
-                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, node.getSanitizedHtmlId() + "_line_" + counter, value.node2.getSanitizedHtmlId()); 
+                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, node.getSanitizedHtmlId() + "_lineB_" + counter, value.node2.getSanitizedHtmlId(), "fromPackedNode", idForPackedNode); 
                         }
-                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, node.getSanitizedHtmlId() + "_line_" + counter, value.node.getSanitizedHtmlId());
+                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, node.getSanitizedHtmlId() + "_lineA_" + counter, value.node.getSanitizedHtmlId(), "fromPackedNode", idForPackedNode);
+
+                        // Draw line from node to packed node
+                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, node.getSanitizedHtmlId() + "_line2PNode_" + counter, idForPackedNode, "toPackedNode", node.getSanitizedHtmlId());
 
                         // Update for next iteration
                         packedNodeX += nodeAreaSegmentSizeX * 2 + 2 * PACKED_NODE_R;
                         counter++;
                     }
+                }
+                else if (node.familiesCount == 1)
+                {
+                    let iterator = node.families.values();
+                    let family = iterator.next().value;
+                    if(family instanceof BinaryFamily)
+                    {
+                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, node.getSanitizedHtmlId() + "_lineB", family.node2.getSanitizedHtmlId(), "toNode", node.getSanitizedHtmlId());
+                    }
+                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, node.getSanitizedHtmlId() + "_lineA", family.node.getSanitizedHtmlId(), "toNode", node.getSanitizedHtmlId());
                 }
             } 
             rowIdx++;
@@ -156,7 +171,8 @@ class TreeArea {
     */
     renderPackedNode(x, y, r, id)
     {
-        let svgArea = document.getElementById("svgImgArea");
+        let svgArea = document.getElementById(SVG_IMG_ID);
+        let svgAreaBBox = svgArea.getBoundingClientRect();
 
         let circle;
         if (!document.getElementById(id)) {
@@ -165,7 +181,6 @@ class TreeArea {
             circle.setAttribute("id", id);
             svgArea.appendChild(circle);
         }
-
         else {
             circle = document.getElementById(id);
         }
@@ -175,7 +190,7 @@ class TreeArea {
         circle.setAttribute("r", r);
     }
 
-    renderPath(startX, startY, id, childId)
+    renderPath(startX, startY, lineId, childId, cssClass, parentId)
     {
 
         /*
@@ -183,39 +198,15 @@ class TreeArea {
         * https://stackoverflow.com/questions/11404391/invert-svg-clip-show-only-outside-path
         */
 
-        let svgArea = document.getElementById("svgImgArea");
+        let svgArea = document.getElementById(SVG_IMG_ID);
         let child = document.getElementById(childId);
+        let parent = document.getElementById(parentId);
         let childBBox = child.getBoundingClientRect();
         let svgAreaBBox = svgArea.getBoundingClientRect(); // Use to deduct x and y values as x2 and y2 attributes start at top left of SVG image, the main page. 
+        let parentBBox = parent.getBoundingClientRect();
 
-        // First make sure to define the clipping area to erase the lines that would otherwise be drawn over the target node.
-        let defs;
-        let mask;
-        let rect;
-        if(!document.getElementById("mainDefs"))
-        {
-            defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-            defs.setAttribute("id", "mainDefs");
-            
-            mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
-            mask.setAttribute("id", "mask");
-            mask.setAttribute("width", svgAreaBBox.width);
-            mask.setAttribute("height", svgAreaBBox.height);
-
-            rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            rect.setAttribute("width", svgAreaBBox.width);
-            rect.setAttribute("height", svgAreaBBox.height);
-            rect.setAttribute("fill", "white");
-
-            svgArea.appendChild(defs);
-            defs.appendChild(mask);
-            mask.appendChild(rect);
-        }
-        else
-        {
-            defs = document.getElementById("mainDefs");
-            mask = document.getElementById("mask");
-        }
+        // Mask out the line within the child node
+        let mask = this.createMainMask();
         if(!document.getElementById(childId + "_clip"))
         {
             let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -230,15 +221,34 @@ class TreeArea {
             mask.appendChild(rect);
         }
 
+        // Mask out the line within the parent node (either packed or regular)
+        if(!document.getElementById(parentId + "_clip"))
+        {
+            let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("id", parentId + "_clip");
+            rect.setAttribute("x", parentBBox.x - svgAreaBBox.x);
+            rect.setAttribute("y", parentBBox.y - svgAreaBBox.y);
+            if(parent.nodeName == "ellipse")
+            {
+                rect.setAttribute("rx", parent.getAttribute("rx"));
+                rect.setAttribute("ry", parent.getAttribute("ry"));
+            }
+            rect.setAttribute("width", parentBBox.width);
+            rect.setAttribute("height", parentBBox.height);
+            rect.setAttribute("fill", "black");
+            mask.appendChild(rect);
+        }
+
         let path;
-        if (!document.getElementById(id)) {
+        if (!document.getElementById(lineId)) {
             // If it does not, render it by creating an SVG elipse with label as text
             path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("id", id);
+            path.setAttribute("id", lineId);
             path.setAttribute("mask", "url(#mask)");
+            path.setAttribute("class", cssClass);
         }
         else {
-            path = document.getElementById(id);
+            path = document.getElementById(lineId);
         }
        
         let childMiddleX = childBBox.x - svgAreaBBox.x + childBBox.width / 2;
@@ -251,5 +261,41 @@ class TreeArea {
         path.setAttribute("d", points.join(" "));
 
         svgArea.appendChild(path);
+    }
+
+    /* 
+    * Create main mask, if it does not exist already, to be used to define the clipping area to erase the 
+    * lines that would otherwise be drawn over the target node.
+    */
+    createMainMask() {
+        let svgArea = document.getElementById(SVG_IMG_ID);
+        let svgAreaBBox = svgArea.getBoundingClientRect();
+        let defs;
+        let mask;
+        let rect;
+        if (!document.getElementById("mainDefs")) {
+            defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            defs.setAttribute("id", "mainDefs");
+
+            mask = document.createElementNS("http://www.w3.org/2000/svg", "mask");
+            mask.setAttribute("id", "mask");
+            mask.setAttribute("width", svgAreaBBox.width);
+            mask.setAttribute("height", svgAreaBBox.height);
+
+            rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("width", svgAreaBBox.width);
+            rect.setAttribute("height", svgAreaBBox.height);
+            rect.setAttribute("fill", "white");
+
+            svgArea.appendChild(defs);
+            defs.appendChild(mask);
+            mask.appendChild(rect);
+        }
+
+        else {
+            defs = document.getElementById("mainDefs");
+            mask = document.getElementById("mask");
+        }
+        return mask;
     }
 }

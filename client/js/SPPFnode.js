@@ -105,7 +105,7 @@ class SPPFnode {
     }
 
     renderNode(x, y) {
-        let svgArea = document.getElementById("svgImgArea");
+        let svgArea = document.getElementById(SVG_IMG_ID);
 
         let newId = this.getSanitizedHtmlId();
 
