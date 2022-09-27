@@ -1,8 +1,9 @@
 class TreeArea {
-    constructor(arrayOfSets) {
+    constructor(arrayOfSets, id) {
         this._width = 0;
         this._height = 0;
         this._arrayOfSets = arrayOfSets;
+        this._id = id;
     }
 
     get width() {
@@ -78,7 +79,7 @@ class TreeArea {
             for (const key of iterator) {
                 let node = getNodeFromKey(key, rowIdx, this._arrayOfSets);
                 let nodeYPos = startY + (maxNodeHeight - node.height) / 2;
-                node.renderNode(nodePosX + NODE_MARGIN_LR, nodeYPos);
+                node.renderNode(nodePosX + NODE_MARGIN_LR, nodeYPos, this._id);
                 nodePosX = nodePosX + node.width + NODE_MARGIN_LR * 2;
             }
 
@@ -97,7 +98,7 @@ class TreeArea {
                 let svgTopLeftPoint = new DOMPoint(svgBBox.x, svgBBox.y);
                 
                 let node = getNodeFromKey(key, rowIdx, this._arrayOfSets);
-                let nodeBBox = document.getElementById(node.getSanitizedHtmlId()).getBoundingClientRect();
+                let nodeBBox = document.getElementById(this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId())).getBoundingClientRect();
                 let nodeTopLeftPoint = new DOMPoint(nodeBBox.x - svgTopLeftPoint.x, nodeBBox.y - svgTopLeftPoint.y);  // Top left point of node within SVG image
                 let nodeMiddlePoint = new DOMPoint(nodeTopLeftPoint.x + nodeBBox.width / 2, nodeTopLeftPoint.y + nodeBBox.height / 2);          
                 let nodeAreaStartX = nodeTopLeftPoint.x - NODE_MARGIN_LR;
@@ -109,19 +110,19 @@ class TreeArea {
                     let counter = 1;
                     for(let [key, value] of node.families)
                     {
-                        let idForPackedNode = node.getSanitizedHtmlId() + "_pn" + counter;
+                        let idForPackedNode = this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_pn" + counter;
                         this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, idForPackedNode);
                         
+                        // Draw line from node to packed node
+                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_line2PNode_" + counter, idForPackedNode, "toPackedNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()));
+
                         // Draw line from packed node to child/children
+                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA_" + counter, this.prefixTreeAreaIdToNodeId(value.node.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode);
                         if(value instanceof BinaryFamily)
                         {
-                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, node.getSanitizedHtmlId() + "_lineB_" + counter, value.node2.getSanitizedHtmlId(), "fromPackedNode", idForPackedNode); 
+                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB_" + counter, this.prefixTreeAreaIdToNodeId(value.node2.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode); 
                         }
-                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, node.getSanitizedHtmlId() + "_lineA_" + counter, value.node.getSanitizedHtmlId(), "fromPackedNode", idForPackedNode);
-
-                        // Draw line from node to packed node
-                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, node.getSanitizedHtmlId() + "_line2PNode_" + counter, idForPackedNode, "toPackedNode", node.getSanitizedHtmlId());
-
+                        
                         // Update for next iteration
                         packedNodeX += nodeAreaSegmentSizeX * 2 + 2 * PACKED_NODE_R;
                         counter++;
@@ -133,9 +134,9 @@ class TreeArea {
                     let family = iterator.next().value;
                     if(family instanceof BinaryFamily)
                     {
-                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, node.getSanitizedHtmlId() + "_lineB", family.node2.getSanitizedHtmlId(), "toNode", node.getSanitizedHtmlId());
+                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB", this.prefixTreeAreaIdToNodeId(family.node2.getSanitizedHtmlId()), "toNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()));
                     }
-                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, node.getSanitizedHtmlId() + "_lineA", family.node.getSanitizedHtmlId(), "toNode", node.getSanitizedHtmlId());
+                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA", this.prefixTreeAreaIdToNodeId(family.node.getSanitizedHtmlId()), "toNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()));
                 }
             } 
             rowIdx++;
@@ -254,6 +255,10 @@ class TreeArea {
         let childMiddleX = childBBox.x - svgAreaBBox.x + childBBox.width / 2;
         let childMiddleY = childBBox.y - svgAreaBBox.y + childBBox.height / 2;
 
+        // Workaround, straight lines are not shown with the masking used.
+        if(startX == childMiddleX) childMiddleX++;
+        if(startY == childMiddleY) childMiddleY++;
+
         let points = [];
         points.push(["M"])
         points.push([startX, startY].join(" "));
@@ -297,5 +302,10 @@ class TreeArea {
             mask = document.getElementById("mask");
         }
         return mask;
+    }
+
+    prefixTreeAreaIdToNodeId(nodeId)
+    {
+        return this._id + "_" + nodeId;
     }
 }

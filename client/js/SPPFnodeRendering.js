@@ -173,6 +173,10 @@ function determineCurrentSPPFstructure()
                         if(node.i < nodeToCompare.i)
                         {
                             nodeToCompare = node;
+                        }
+                        else if(node.i == nodeToCompare.i && node.j < nodeToCompare.j)
+                        {
+                            nodeToCompare = node;
                         } 
                     }    
                 }

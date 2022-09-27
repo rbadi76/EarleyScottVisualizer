@@ -104,10 +104,10 @@ class SPPFnode {
             return false;
     }
 
-    renderNode(x, y) {
+    renderNode(x, y, areaId) {
         let svgArea = document.getElementById(SVG_IMG_ID);
 
-        let newId = this.getSanitizedHtmlId();
+        let newId = areaId + "_" + this.getSanitizedHtmlId(); // Adding areaId to make sure each node is unique on the svg image in case they appear on another area.
 
         let newEllipse;
         let newEllipseLabelText;

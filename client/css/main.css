@@ -44,7 +44,7 @@ path.toPackedNode{
 }
 
 path.fromPackedNode{
-    stroke:rgb(32, 46, 170);
+    stroke:rgb(170, 32, 124);
     stroke-width: 2;
 }
 

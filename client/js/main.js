@@ -591,8 +591,9 @@ function drawTrees(SPPF_trees) {
     let svgArea = new SVG_area(parentNodeArea.offsetWidth - (SPPF_NODES_AREA_PADDING_ALL * 2));
     let treeAreaRow = new TreeAreaRow();
     svgArea.addTreeAreaRow(treeAreaRow);
+    let treeCounter = 1;
     SPPF_trees.forEach(tree => {
-        let treeArea = new TreeArea(tree);
+        let treeArea = new TreeArea(tree, treeCounter);
         if(svgArea.lastTreeAreaRow.treeCount == 0)
         {
             svgArea.lastTreeAreaRow.addTreeArea(treeArea);
@@ -610,6 +611,7 @@ function drawTrees(SPPF_trees) {
                 svgArea.addTreeAreaRow(newTreeAreaRow);
             }
         }
+        treeCounter++;
     });
 
     svgArea.render();
