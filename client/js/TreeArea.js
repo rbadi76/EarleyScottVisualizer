@@ -114,13 +114,24 @@ class TreeArea {
                         this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, idForPackedNode);
                         
                         // Draw line from node to packed node
-                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_line2PNode_" + counter, idForPackedNode, "toPackedNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()));
+                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_line2PNode_" + counter, 
+                            idForPackedNode, "toPackedNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId())), false;
+
+                        // Check if the next line goes back to the parent
+                        let useCurve = false;
+                        if(node.isEqual(value.node)) useCurve = true;
 
                         // Draw line from packed node to child/children
-                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA_" + counter, this.prefixTreeAreaIdToNodeId(value.node.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode);
+                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, 
+                            this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA_" + counter, 
+                            this.prefixTreeAreaIdToNodeId(value.node.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode, useCurve);
                         if(value instanceof BinaryFamily)
                         {
-                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB_" + counter, this.prefixTreeAreaIdToNodeId(value.node2.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode); 
+                            useCurve = false;
+                            if(node.isEqual(value.node2)) useCurve = true;
+                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, 
+                                this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB_" + counter, 
+                                this.prefixTreeAreaIdToNodeId(value.node2.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode, useCurve); 
                         }
                         
                         // Update for next iteration
@@ -132,11 +143,14 @@ class TreeArea {
                 {
                     let iterator = node.families.values();
                     let family = iterator.next().value;
+                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA", 
+                        this.prefixTreeAreaIdToNodeId(family.node.getSanitizedHtmlId()), "toNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()), false);
                     if(family instanceof BinaryFamily)
                     {
-                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB", this.prefixTreeAreaIdToNodeId(family.node2.getSanitizedHtmlId()), "toNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()));
-                    }
-                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA", this.prefixTreeAreaIdToNodeId(family.node.getSanitizedHtmlId()), "toNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()));
+                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB", 
+                            this.prefixTreeAreaIdToNodeId(family.node2.getSanitizedHtmlId()), "toNode", 
+                            this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()), false);
+                    }          
                 }
             } 
             rowIdx++;
@@ -191,7 +205,7 @@ class TreeArea {
         circle.setAttribute("r", r);
     }
 
-    renderPath(startX, startY, lineId, childId, cssClass, parentId)
+    renderPath(startX, startY, lineId, childId, cssClass, parentId, useCurve = false)
     {
 
         /*
@@ -214,8 +228,11 @@ class TreeArea {
             rect.setAttribute("id", childId + "_clip");
             rect.setAttribute("x", childBBox.x - svgAreaBBox.x);
             rect.setAttribute("y", childBBox.y - svgAreaBBox.y);
-            rect.setAttribute("rx", child.getAttribute("rx"));
-            rect.setAttribute("ry", child.getAttribute("ry"));
+            if(child.nodeName == "ellipse")
+            {
+                rect.setAttribute("rx", child.getAttribute("rx"));
+                rect.setAttribute("ry", child.getAttribute("ry"));
+            }
             rect.setAttribute("width", childBBox.width);
             rect.setAttribute("height", childBBox.height);
             rect.setAttribute("fill", "black");
@@ -262,6 +279,21 @@ class TreeArea {
         let points = [];
         points.push(["M"])
         points.push([startX, startY].join(" "));
+        if(useCurve)
+        {
+            points.push(["C"]);
+            let ratio = 0.5;
+            let lineLength = Math.sqrt(Math.pow(childMiddleX - startX, 2) + Math.pow(childMiddleY - startY, 2));
+            let bez1Length = lineLength * ratio;
+            let bez1X = bez1Length * Math.cos(45) + startX;
+            let bex1Y = bez1Length * Math.sin(45) + startY;
+            points.push([bez1X, bex1Y].join(" "));
+
+            let bez2X = bez1Length * Math.cos(-45) + childMiddleX;
+            let bex2Y = bez1Length * Math.sin(-45) + childMiddleY;
+            points.push([bez2X, bex2Y].join(" "));
+        }
+
         points.push([childMiddleX, childMiddleY].join(" "));
         path.setAttribute("d", points.join(" "));
 

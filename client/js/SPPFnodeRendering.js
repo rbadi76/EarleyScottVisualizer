@@ -23,7 +23,6 @@ function determineCurrentSPPFstructure()
     // R1
     while(SPPFnodes_copy.size)
     {
-        //console.log("In outer while. SPPFnodes_copy.size=" + SPPFnodes_copy.size)
         SPPF_trees.push([]); // Outer array added
         let outerArray = SPPF_trees[SPPF_trees.length - 1];
         outerArray.push(new Set()); // Inner Set added
@@ -56,7 +55,6 @@ function determineCurrentSPPFstructure()
         let checkForChildren = true; 
         while(SPPFnodes_copy.size && checkForChildren)
         {
-            //console.log("In inner while. SPPFnodes_copy.size=" + SPPFnodes_copy.size)
             // R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
             let SPPF_trees_outerArrayLastIdx = SPPF_trees.length - 1;
             let SPPF_trees_innerArrayLastIdx = SPPF_trees[SPPF_trees_outerArrayLastIdx].length - 1;
@@ -98,8 +96,8 @@ function determineCurrentSPPFstructure()
         }
     }
 
-    console.log("Tree before sorting and pruning:")
-    console.log(writeOutSPPFtreesKeys(SPPF_trees));
+    //console.log("Tree before sorting and pruning:")
+    //console.log(writeOutSPPFtreesKeys(SPPF_trees));
 
     // Pruning starts
     // Delete duplicate terminals at upper levels
@@ -188,8 +186,8 @@ function determineCurrentSPPFstructure()
         }
     }
 
-    console.log("Tree after sorting and pruning:")
-    console.log(writeOutSPPFtreesKeys(SPPF_trees));
+    //console.log("Tree after sorting and pruning:")
+    //console.log(writeOutSPPFtreesKeys(SPPF_trees));
 
     return SPPF_trees;
 }

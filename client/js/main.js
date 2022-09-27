@@ -145,7 +145,6 @@ let parsingDone = false;
 function sendParseRequest(reqObj)
 {
     let jsonObj = JSON.stringify(reqObj);
-    //console.log(jsonObj);
     //Perform an AJAX POST request to the url
     axios.post(window.esvServiceUrl + '/api/v1/createParser', {
         "alphabet": reqObj.alphabet,
@@ -236,12 +235,9 @@ function sendParseRequest(reqObj)
 
 function getStatus(step, ms)
 {
-    // console.log("Get status called");
     // Perform an AJAX POST request to the url
-
     axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
         .then(function (response) {
-            //console.log(response);
             let pStep = document.getElementById("stepCount");
             if(response.data[0].Final == "") 
             {
@@ -574,11 +570,6 @@ function addToSPPFnodes(theArray)
 
     if(sppfNodesHaveChanged)
     {
-        //console.log("Debug: A node has changed.")
-        // TODO: Render the nodes again or add to the existing rendering
-        // Need to think this through
-        // Leaning towards adding to the existing rendering
-
         let SPPF_trees = determineCurrentSPPFstructure();
 
         removeOldTrees()
