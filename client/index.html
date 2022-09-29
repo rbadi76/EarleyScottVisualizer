@@ -23,7 +23,7 @@
             <h1 class="text-center">Earley-Scott Visualizer</h1>
 
             <div id="errorpanel" class="alert alert-danger" hidden>
-                <h2 class="text-center">Error</h2>
+                <h4 class="text-center">Error</h4>
             </div>
 
             <form id="mainform">
@@ -51,7 +51,7 @@
             <div class="container" id="queuesAndSets" hidden>
                 <div class="row">
                     <div class="col-8 alert alert-primary" id="infopanel">
-                        <h2 class="text-center">Notification</h2>
+                        <h4 class="text-center">Notification</h4>
                     </div>
                     <div class="col-4 btnFixed" id="ctrlButtons">
                         <button class="btn btn-danger" onclick="abort()" id="btnAbort">Abort</button>
@@ -63,34 +63,34 @@
                     <div class="col-8"> <!-- Queues area -->
                         <div class="row card text-bg-light mt-2 mb-2 me-1">
                             <div class="col card-body">
-                                <h3 id="Qset"><span class="badge bg-secondary">Q</span></h3>
+                                <h5 id="Qset"><span class="badge bg-secondary">Q</span></h5>
                             </div>
                         </div>
                         <div class="row card text-bg-light mt-2 mb-2 me-1">
                             <div class="col card-body">
-                                <h3 id="QmarkedSet"><span class="badge bg-secondary">Q'</span></h3>
+                                <h5 id="QmarkedSet"><span class="badge bg-secondary">Q'</span></h5>
                             </div>
                         </div>
                         <div class="row card text-bg-light mt-2 mb-2 me-1">
                             <div class="col card-body">
-                                <h3 id="Rset"><span class="badge bg-secondary">R</span></h3>
+                                <h5 id="Rset"><span class="badge bg-secondary">R</span></h5>
                             </div>
                         </div>
                         <div class="row card text-bg-light mt-2 mb-2 me-1">
                             <div class="col card-body">
-                                <h3 id="Hset"><span class="badge bg-secondary">H</span></h3>
+                                <h5 id="Hset"><span class="badge bg-secondary">H</span></h5>
                             </div>
                         </div>
                     </div>
                     <div class="col-4"> <!-- Tokens and grammar area -->
                         <div class="row card text-bg-light mt-2 mb-2">
                             <div class="col card-body" id="tokens2">
-                                <h3 class="text-center">Tokens</h3>
+                                <h5 class="text-center">Tokens</h5>
                             </div>
                         </div>
                         <div class="row card text-bg-light mt-2 mb-2">
                             <div class="col card-body" id="grammar2">
-                                <h3 class="text-center">Grammar</h3>
+                                <h5 class="text-center">Grammar</h5>
                             </div>
                         </div>
                     </div>
@@ -98,7 +98,7 @@
                 <div class="row card text-bg-dark mt-2 mb-2">
                     <div class="col">
                         <div class="row card text-bg-dark  mt-2 mb-2"> <!-- Earley sets area -->
-                            <div class="col card-header"><h2>Earley sets</h2></div>
+                            <div class="col card-header"><h4>Earley sets</h4></div>
                         </div>
                         <!-- Add rows and coluns dynamically. For each i add a column up to 12, then start a new row for the next 12 etc. -->
                         <div class="row card-body mt-2 mb-2" id="earleySets"> <!-- REMOVE LATER - Adding this row and child columns for testing.-->
@@ -112,12 +112,12 @@
                 
                 <div class="row card text-bg-light mt-2 mb-2">
                     <div class="col card-body">
-                        <h3 id="Vset"><span class="badge bg-secondary">V</span></h3>
+                        <h5 id="Vset"><span class="badge bg-secondary">V</span></h5>
                     </div>
                 </div>
                 <div class="row card text-bg-dark mt-2 mb-2">
                     <div class="col card-body" id="SPPFnodesArea">
-                        <h2>Nodes</h2>
+                        <h4>Nodes</h4>
                         <svg id="svgImgArea">
                         </svg>
                     </div>

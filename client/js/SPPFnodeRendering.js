@@ -63,9 +63,9 @@ function determineCurrentSPPFstructure()
             // and for each node key there 
             SPPF_trees[SPPF_trees_outerArrayLastIdx][SPPF_trees_innerArrayLastIdx].forEach(key => {
                 // check for children in those nodes contained in SPPFNodes_copy
-                if(SPPFnodes_copy.has(key)) // Check if SPPFnodes_copy has the key as it might have been deleted if already processed
+                if(SPPFnodes.has(key)) // Check if SPPFnodes_copy has the key as it might have been deleted if already processed
                 {
-                    let nodeToCheck = SPPFnodes_copy.get(key);
+                    let nodeToCheck = SPPFnodes.get(key);
                     // If any node has children, for the first child push an array to the outer container.
                     if(nodeToCheck.families.size && !checkForChildren) // Only push once when first child is found
                     {
@@ -96,8 +96,8 @@ function determineCurrentSPPFstructure()
         }
     }
 
-    //console.log("Tree before sorting and pruning:")
-    //console.log(writeOutSPPFtreesKeys(SPPF_trees));
+    console.log("Tree before sorting and pruning:")
+    console.log(writeOutSPPFtreesKeys(SPPF_trees));
 
     // Pruning starts
     // Delete duplicate terminals at upper levels

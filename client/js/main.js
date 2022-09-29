@@ -12,6 +12,7 @@ const helpTextGrammarWords = "Create grammar on the form S => word1 word2 | word
                              + " of a production.";
 
 const  SPPF_NODES_AREA_PADDING_ALL = 16;
+const TIMEOUT = 500; // Initial timeout interval for getStatus requests
 
 let readyToParse = true;    // To know how to continue (Start again if done or continue when in middle of parsing)
 let getStatusTimeout;        // To know what timeout to send to clearTimeout when pausing
@@ -70,7 +71,6 @@ function validatePrepareAndSend()
         }
     });
 
-    // TODO: Validate input with words == true. Skipping that for now.
     let isValid = validateAlphabetStr(alphabetStr, areWords) && validateStringToParse(tokenStr, alphabetStr, areWords) && validateGrammar(grammarText);
     
     if(isValid)
@@ -111,15 +111,15 @@ function validatePrepareAndSend()
             divEi.classList.add("col");
             divEi.setAttribute("id", "E" + i);
 
-            let h2 = document.createElement("h2");
+            let h4 = document.createElement("h4");
             let sub = document.createElement("sub");
             let textE = document.createTextNode("E");
             let textNum = document.createTextNode(i);
 
             sub.append(textNum);
-            h2.append(textE);
-            h2.append(sub);
-            divEi.append(h2);
+            h4.append(textE);
+            h4.append(sub);
+            divEi.append(h4);
 
             earleySetsRow.append(divEi);
         }
@@ -209,14 +209,14 @@ function sendParseRequest(reqObj)
         let abortButton = document.getElementById("btnAbort")
         abortButton.disabled = false;  
         SPPFnodes = new Map();
-        getStatusTimeout = setTimeout(() => getStatus(0, 1000), 1000);     
+        getStatusTimeout = setTimeout(() => getStatus(0, TIMEOUT), TIMEOUT);     
     })
     .catch(function (error) {
 
         if(error.hasOwnProperty('response') && error.response.hasOwnProperty('status') && error.response.status == 425)
         {
             console.log(error.response.data[0].result);
-            createParserTimeout = setTimeout(() => sendParseRequest(reqObj), 1000);
+            createParserTimeout = setTimeout(() => sendParseRequest(reqObj), TIMEOUT);
             return;
         }
 
@@ -329,54 +329,72 @@ function handleChange(checkbox)
 
 function validateAlphabetStr(alphabetStr, areWords)
 {
-    let errorpanel = document.getElementById("errorpanel");
-    let p = document.createElement("p");
-
     if(!alphabetStr.includes(" ") && alphabetStr.length > 1 && areWords == false)
     {
         let text = document.createTextNode("Alphabet does not have spaces between tokens.")
-        p.append(text);
-        p.classList.add("text-center");
-        errorpanel.appendChild(p);
-        errorpanel.removeAttribute("hidden")
+        addToErrorPanel(text);
         return false;
     }
 
-    let isValid = true
+    if(areWords && !alphabetStr.includes(" "))
+    {
+        let text = document.createTextNode("Alphabet must have more than one word with spaces in between.")
+        addToErrorPanel(text);
+        return false;
+    }
     
     let tokens = alphabetStr.split(" ");
-    for(let i = 0; i < tokens.length; i++)
+    if(!areWords)
     {
-        if(tokens[i].length > 1 && tokens[i] != "eps") 
+        for(let i = 0; i < tokens.length; i++)
         {
-            let text = document.createTextNode("Please put in single characters for the alphabet.")
-            p.append(text);
-            p.classList.add("text-center");
-            errorpanel.appendChild(p);
-            errorpanel.removeAttribute("hidden")
-            return false;
-        }
-    };
+            if(tokens[i].length > 1 && tokens[i] != "eps") 
+            {
+                let text = document.createTextNode("Please put in single characters for the alphabet.")
+                addToErrorPanel(text);
+                return false;
+            }
+        };
+    }
 
     return true;
 }
 
+function addToErrorPanel(text) {
+    let errorpanel = document.getElementById("errorpanel");
+    let p = document.createElement("p");
+    p.append(text);
+    p.classList.add("text-center");
+    errorpanel.appendChild(p);
+    errorpanel.removeAttribute("hidden");
+}
+
 function validateStringToParse(stringToParse, alphabetStr, areWords)
 {
-    tokens = stringToParse.split("");
+    
     if(!areWords)
     {
+        tokens = stringToParse.split("");
         for(var i=0; i < tokens.length; i++)
         {
             if(!alphabetStr.includes(tokens[i]))
             {
-                let errorpanel = document.getElementById("errorpanel");
-                let p = document.createElement("p");
                 let text = document.createTextNode("String includes a token not in alphabet.")
-                p.append(text);
-                p.classList.add("text-center");
-                errorpanel.appendChild(p);
-                errorpanel.removeAttribute("hidden")
+                addToErrorPanel(text);
+                return false;
+            }
+        }
+    }
+
+    if(areWords)
+    {
+        tokens = stringToParse.split(" ");
+        for(var i=0; i < tokens.length; i++)
+        {
+            if(!alphabetStr.includes(tokens[i]))
+            {
+                let text = document.createTextNode("String includes a token not in alphabet.")
+                addToErrorPanel(text)
                 return false;
             }
         }
@@ -444,7 +462,14 @@ class RequestObject
                 }
                 else
                 {
-                    newArray.push(item.trim().split("").join(" "));
+                    if(areWords)
+                    {
+                        newArray.push(item.trim().split(" ").join(" "));
+                    }
+                    else
+                    {
+                        newArray.push(item.trim().split("").join(" "));
+                    }
                 }
             });
             this.grammar.push(newArray);
@@ -673,7 +698,7 @@ function cont()
     else // We were parsing but paused
     {
         // Continue with the parsing
-        getStatusTimeout = setTimeout(() => getStatus(currentStep + 1, 1000), 1000);
+        getStatusTimeout = setTimeout(() => getStatus(currentStep + 1, TIMEOUT), TIMEOUT);
 
     }
 }

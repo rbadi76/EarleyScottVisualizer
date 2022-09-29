@@ -37,7 +37,7 @@ async function continueIfAllowed(nextFunction)
     if(!parseStatus.parseStatus.canContinue())
     {
         console.log("Cannot continue. Sleeping for 1 sec.");
-        await sleep(1000);
+        await sleep(400);
         continueIfAllowed(nextFunction);
     }
     else
