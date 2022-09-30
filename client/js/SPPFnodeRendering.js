@@ -17,12 +17,12 @@ function determineCurrentSPPFstructure()
 {
     // Deep copy with families
     let SPPFnodes_copy = copySPPFnodesMap();
-
     let SPPF_trees = [];
 
     // R1
     while(SPPFnodes_copy.size)
     {
+        let currentTree = new Set(); // Used for checking of existence of a node to prevent repetions due to circular reference.
         SPPF_trees.push([]); // Outer array added
         let outerArray = SPPF_trees[SPPF_trees.length - 1];
         outerArray.push(new Set()); // Inner Set added
@@ -38,7 +38,7 @@ function determineCurrentSPPFstructure()
         let bottomNode = SPPFnodes_copy.get(keyOfBottomItem);
         if(bottomNode.families.size)
         {
-            // If the node has children, for the first child push an Set to the outer container.
+            // If the node has children, for the first child push a Set to the outer container.
             outerArray.push(new Set());
 
             // for each child push its key to the inner container.
@@ -49,11 +49,12 @@ function determineCurrentSPPFstructure()
                     outerArray[1].add(family.node2.toString());
                 }                
             });
+            currentTree.add(keyOfBottomItem); // Add parent to the set after checking for children
             SPPFnodes_copy.delete(keyOfBottomItem); // Remove the parent node from SPPFNodes_copy
         }
 
         let checkForChildren = true; 
-        while(SPPFnodes_copy.size && checkForChildren)
+        while(checkForChildren)
         {
             // R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
             let SPPF_trees_outerArrayLastIdx = SPPF_trees.length - 1;
@@ -62,22 +63,23 @@ function determineCurrentSPPFstructure()
             checkForChildren = false;
             // and for each node key there 
             SPPF_trees[SPPF_trees_outerArrayLastIdx][SPPF_trees_innerArrayLastIdx].forEach(key => {
-                // check for children in those nodes contained in SPPFNodes_copy
-                if(SPPFnodes.has(key)) // Check if SPPFnodes_copy has the key as it might have been deleted if already processed
+                // check for children in those nodes contained in SPPFNodes and that have not been already been added to SPPF_trees
+                // and been checked for children.
+                if(SPPFnodes.has(key) && !currentTree.has(key)) 
                 {
                     let nodeToCheck = SPPFnodes.get(key);
                     // If any node has children, for the first child push an array to the outer container.
                     if(nodeToCheck.families.size && !checkForChildren) // Only push once when first child is found
                     {
                         checkForChildren = true;
-                        outerArray.push(new Set());
+                        SPPF_trees[SPPF_trees_outerArrayLastIdx].push(new Set());
                     }
-                    // for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
+                    // for each child push its key to the inner container
                     if(nodeToCheck.families.size)
                     {
                         nodeToCheck.families.forEach(family => {
                             // To ensure correct ordering we check for existence and delete the previous entry before we try adding again.
-                            let innerSet = outerArray[SPPF_trees_innerArrayLastIdx + 1];
+                            let innerSet = SPPF_trees[SPPF_trees_outerArrayLastIdx][SPPF_trees_innerArrayLastIdx + 1];
                             innerSet.add(family.node.toString());
                             if(family instanceof BinaryFamily)
                             {
@@ -85,14 +87,15 @@ function determineCurrentSPPFstructure()
                             }
                         });
                     }
+                    currentTree.add(key);
                     // Remove the parent node from SPPFNodes_copy
                     SPPFnodes_copy.delete(key);
                 }
             });
 
-            // Otherwise check if the last inner array has been checked for children
-            // If yes and goto #R1
-            // If no goto #R2
+            // If the last inner array has been checked for children
+            // then goto #R1
+            // else goto #R2
         }
     }
 

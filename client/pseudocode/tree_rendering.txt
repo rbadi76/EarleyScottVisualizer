@@ -3,25 +3,29 @@ PSEUDOCODE FOR TREE STRUCTURE
 Start with creating a data structure on which to base the actual tree rendering:
 
 Copy the SPPFNodes map, call it SPPFNodes_copy.
+Create an array, call it SPPF_trees.
 
-If SPPFNodes_copy is not empty:
-    Create an array, call it SPPF_trees.
-    #R1 Add an array to it (outer container).
+While SPPFNodes_copy is not empty:
+    #R1 
+    Create a set called currentTree
+    Add an array to it (outer container).
     push an array (inner container)
     push the key of the node at the bottom of SPPFNodes_copy to the inner container.
     If the node has children, for the first child push an array to the outer container.
     for each child push its key to the inner container.
+    Add the parent's key to the current tree
     Remove the parent node from SPPFNodes_copy
     
     #R2 Now go to the last array of SPPF_trees (outer container), and last array of it (inner container with children)
-    and and for each node key there check for children in those nodes contained in SPPFNodes_copy 
+    and for each node key there check for children in those nodes contained in SPPFNodes and that have not been already been added to SPPF_trees
+    and been checked for children (i.e. not in currentTree).
     If any node has children, for the first child push an array to the outer container.
-    for each child push its key to the inner container (if it no longer exists in SPPFNodes_copy, do nothing as we have a circular reference)
+    for each child push its key to the inner container
+    Add the parent's key to currentTree.
     Remove the parent node from SPPFNodes_copy
-    If SPPFNodes_copy is empty stop.
-    Otherwise check if the last inner array has been checked for children
-    If yes and goto #R1
-    If no goto #R2
+    If the last inner array has been checked for children
+        then goto #R1
+    else goto #R2
 
     Finally remove all duplicate terminals at upper levels, leaving them at the leaves and remove all duplicate non-terminal leaves leaving the top most
     
