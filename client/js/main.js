@@ -171,9 +171,17 @@ function sendParseRequest(reqObj)
         pStep.classList.add("text-center");
         pStep.setAttribute("id", "stepCount");
 
+        // Create description line.
+        let pDescription = document.createElement("p");
+        let textDescription = document.createTextNode("Initializing");
+        pDescription.append(textDescription);
+        pDescription.classList.add("text-center");
+        pDescription.setAttribute("id", "codeDescription");
+
         // Append elements
         infopanel.appendChild(p);
         infopanel.appendChild(pStep);
+        infopanel.appendChild(pDescription);
 
         // Show tokens and grammar
         let tokensCol = document.getElementById("tokens2");
@@ -239,12 +247,15 @@ function getStatus(step, ms)
     axios.get(window.esvServiceUrl + '/api/v1/getStatus/' + step, {})
         .then(function (response) {
             let pStep = document.getElementById("stepCount");
+            let pDescription = document.getElementById("codeDescription");
             if(response.data[0].Final == "") 
             {
                 getStatusTimeout = setTimeout(() => getStatus(response.data[0].step + 1, ms), ms);
 
                 if(pStep) pStep.textContent = "Step " + step;
                 currentStep = step;
+
+                if(pDescription) pDescription.textContent = response.data[0].description;
 
                 populateEarleySets(response.data[0].E);
                 populateOtherSets('Qset', response.data[0].Q);

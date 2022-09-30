@@ -11,6 +11,7 @@ let parseStatus = (function(){
     let parsingStarted = false;
     let final = "";
     let abort = false;
+    let description = "";
 
     function getArrayOfStringifiedItems(orgArray)
     {
@@ -143,6 +144,10 @@ let parseStatus = (function(){
             }
             
         },
+        getDescription: function()
+        {
+            return description;
+        },
         canContinue: function()
         {
             if(nextStepToShow == lastStepShown && !abort)
@@ -172,6 +177,10 @@ let parseStatus = (function(){
         abort: function() // Effectively lets the algorithm run it's course and finish.
         {
             abort = true;
+        },
+        setDescription: function(text)
+        {
+            description = text;
         }
     };
 })();

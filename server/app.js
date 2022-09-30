@@ -96,7 +96,7 @@ app.post('/api/v1/createParser', (req, res) => {
         {
             let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
             //let outcome = earleyScott.parse();
-            earleyScott.parseAsync1();
+            earleyScott.parseAsync1(1);
             outcome = "Parsing started.";
             respArray.push({ result: outcome});
             return res.status(201).json(respArray);
@@ -164,7 +164,8 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
                     E: parseStatus.parseStatus.getE(),
                     H: parseStatus.parseStatus.getH(),
                     Final: parseStatus.parseStatus.getFinal(),
-                    V_withNodes: parseStatus.parseStatus.getVWithFamilies()
+                    V_withNodes: parseStatus.parseStatus.getVWithFamilies(),
+                    description: parseStatus.parseStatus.getDescription()
             });
             parseStatus.parseStatus.incrementNextStepToShow();
             if(parseStatus.parseStatus.getFinal() != "")
