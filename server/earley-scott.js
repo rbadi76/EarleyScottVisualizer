@@ -287,6 +287,7 @@ class EarleyScott
 
         if(arrayOfStartProductions.length)
         {
+            updateParseStatus(parseStatus, this, "Finished executing parse in one run.");
             return arrayOfStartProductions[0].w;
         }
         else
