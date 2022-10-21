@@ -869,7 +869,7 @@ class EarleyScottItem
     {
         if(this._productionOrNT instanceof Production)
         {
-            return "(" + this.productionOrNT.lhs + " ::= " + this.productionOrNT.rhs.join("") + ", " + this.i + ", " + (this._w === null ? "null" : this._w.toString()) + ")";
+            return "(" + this.productionOrNT.lhs + " ::= " + this.productionOrNT.rhs.join(" ") + ", " + this.i + ", " + (this._w === null ? "null" : this._w.toString()) + ")";
         }
         else
         {
