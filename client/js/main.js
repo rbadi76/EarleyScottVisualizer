@@ -79,7 +79,7 @@ function validatePrepareAndSend(stepByStep)
         errorpanel.setAttribute("hidden", "true");
         reqObj = new RequestObject(alphabetStr, tokenStr, grammarText, areWords);
         
-        sendParseRequest(reqObj, stepByStep);
+        sendParseRequest(reqObj, stepByStep, areWords);
         
         let queuesAndSets = document.getElementById("queuesAndSets");
         queuesAndSets.removeAttribute("hidden");
@@ -153,7 +153,7 @@ function validatePrepareAndSend(stepByStep)
 
 let parsingDone = false;
 
-function sendParseRequest(reqObj, stepByStep)
+function sendParseRequest(reqObj, stepByStep, areWords)
 {
     let jsonObj = JSON.stringify(reqObj);
 
@@ -185,15 +185,30 @@ function sendParseRequest(reqObj, stepByStep)
             let pProduction = document.createElement("p");
             pProduction.classList.add("mb-1");
             let rewrittenProduction;
-            production.forEach((item, ix) => {
-                let noSpaceItem = item.split(" ").join("");
-                if(ix == 0) rewrittenProduction = noSpaceItem + " ::= ";
-                else 
-                {
-                    if(ix == production.length - 1) rewrittenProduction += noSpaceItem;
-                    else rewrittenProduction += noSpaceItem + "|";
-                }
-            });
+
+            if(!areWords)
+            {
+                production.forEach((item, ix) => {
+                    let noSpaceItem = item.split(" ").join("");
+                    if(ix == 0) rewrittenProduction = noSpaceItem + " ::= ";
+                    else 
+                    {
+                        if(ix == production.length - 1) rewrittenProduction += noSpaceItem;
+                        else rewrittenProduction += noSpaceItem + " | ";
+                    }
+                });
+            }
+            else
+            {
+                production.forEach((item, ix) => {
+                    if(ix == 0) rewrittenProduction = item + " ::= ";
+                    else 
+                    {
+                        if(ix == production.length - 1) rewrittenProduction += item;
+                        else rewrittenProduction += item + " | ";
+                    }
+                });
+            }
             let textProduction = document.createTextNode(rewrittenProduction);
             pProduction.append(textProduction);
             grammarCol.appendChild(pProduction);
