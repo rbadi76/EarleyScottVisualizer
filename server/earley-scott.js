@@ -220,40 +220,39 @@ class EarleyScott
                     {
                         this._H.push(new H_Item(element.productionOrNT.lhs, element.w));
                     }
-                    for(let j=0; j <= i; j++)
-                    {
-                        this._E[j].forEach(item => {
-                            if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
-                                && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
-                            {
-                                // Need to copy the item first as otherwise calling moveCursorForwardByOne messes up the ESI in E_i which might need to be used later unchanged.
-                                let newEarleyScottItem = new EarleyScottItem(
-                                    new Production(item.productionOrNT.lhs, item.productionOrNT.rhs.join(" ")), 
-                                    item.i, 
-                                    item.w // w is an node reference so it does not need to be copied.
-                                );
-                                newEarleyScottItem.productionOrNT.moveCursorForwardByOne();
-                                let y = this.make_node(newEarleyScottItem.productionOrNT, newEarleyScottItem.i, i, newEarleyScottItem.w, element.w, this._V);
 
-                                let esi_with_node = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
-                                
-                                // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
-                                if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
-                                    && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
-                                    && innerItem.i == newEarleyScottItem.i && innerItem.w == y))
-                                {
-                                    this._E[i].push(esi_with_node);
-                                    this._R.push(esi_with_node);   
-                                }
-                                // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
-                                // according to Scott's paper. 
-                                if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
-                                {
-                                    this._Q.push(esi_with_node);
-                                }
+                    this._E[element.i].forEach(item => {
+                        if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
+                            && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
+                        {
+                            // Need to copy the item first as otherwise calling moveCursorForwardByOne messes up the ESI in E_i which might need to be used later unchanged.
+                            let newEarleyScottItem = new EarleyScottItem(
+                                new Production(item.productionOrNT.lhs, item.productionOrNT.rhs.join(" ")), 
+                                item.i, 
+                                item.w // w is an node reference so it does not need to be copied.
+                            );
+                            newEarleyScottItem.productionOrNT.moveCursorForwardByOne();
+                            let y = this.make_node(newEarleyScottItem.productionOrNT, newEarleyScottItem.i, i, newEarleyScottItem.w, element.w, this._V);
+
+                            let esi_with_node = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
+                            
+                            // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
+                            if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
+                                && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
+                                && innerItem.i == newEarleyScottItem.i && innerItem.w == y))
+                            {
+                                this._E[i].push(esi_with_node);
+                                this._R.push(esi_with_node);   
                             }
-                        });
-                    }
+                            // Although we use the betaAfterCursor getter we are in fact checking the first character of the delta
+                            // according to Scott's paper. 
+                            if(newEarleyScottItem.productionOrNT.betaAfterCursor[0] == this._tokens[i]) // Note our token array is 0-based unlike Scott's
+                            {
+                                this._Q.push(esi_with_node);
+                            }
+                        }
+                    });
+                    
                 }
 
             }
@@ -544,33 +543,28 @@ class EarleyScott
             this._H.push(h_item);
             updateParseStatus(parseStatus, this, "h equals i, so we added " + h_item.toString() + " to queue H.");
             parseStatus.parseStatus.incrementLastStepShown();
-            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, 0));
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, false));
         }
         else
         {
-            this.parseAsync7_CursorIsAtEndForLoop(i, element, 0);
+            updateParseStatus(parseStatus, this, "h is not equal to i.");
+            parseStatus.parseStatus.incrementLastStepShown();
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, false));
         }
     }
 
-    async parseAsync7_CursorIsAtEndForLoop(i, element, j)
+    async parseAsync7_CursorIsAtEndForLoop(i, element, done)
     {
         console.log(fgWhite + "%s" + reset, "Started parseAsync7_CursorIsAtEndForLoop.");
-        if(j <= i)
+        if(!done)
         {
-            if(this._E[j].length)
-            {
-                let copyOfEj = [];
-                this._E[j].forEach(item => {
-                    let earleyScottItem = this.cloneEarleyScottItem(item);
-                    copyOfEj.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
-                });
-                let itemFromEj = copyOfEj.shift();
-                this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, copyOfEj, itemFromEj);
-            }
-            else
-            {
-                this.parseAsync7_CursorIsAtEndForLoop(i, element, j + 1);
-            }
+            let copyOfEh = [];
+            this._E[element.i].forEach(item => {
+                let earleyScottItem = this.cloneEarleyScottItem(item);
+                copyOfEh.push(earleyScottItem); // Important to copy, otherwise I cannot use shift here below
+            });
+            let itemFromEh = copyOfEh.shift();
+            this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, copyOfEh, itemFromEh);
         }
         else
         {
@@ -580,11 +574,11 @@ class EarleyScott
         
     }
 
-    async parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, item)
+    async parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, queue, item)
     {
         console.log(fgWhite + "%s" + reset, "Started parseAsync7_CursorIsAtEndForLoopItemsInE.");
         let whichBranch = [];
-        whichBranch.push("In for all (A ::= τ · Dδ,k,z) in Eh (E[" + j + "]). Looking at item " + item.toString() + " where D should equal " + element.productionOrNT.lhs);
+        whichBranch.push("In for all (A ::= τ · Dδ,k,z) in E_h. Looking at item " + item.toString() + " where D should equal " + element.productionOrNT.lhs);
         if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
             && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
         {
@@ -627,14 +621,14 @@ class EarleyScott
             updateParseStatus(parseStatus, this, whichBranch.join(" "));
             parseStatus.parseStatus.incrementLastStepShown();
             let nextItem = queue.shift();
-            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, j, queue, nextItem));
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoopItemsInE(i, element, queue, nextItem));
         }
         else
         {
-            whichBranch.push("R is now empty. Stopping breaking out of main while loop.");
+            whichBranch.push("R is now empty. Stopping, breaking out of main while loop.");
             updateParseStatus(parseStatus, this, whichBranch.join(" "));
             parseStatus.parseStatus.incrementLastStepShown();
-            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, j+1));
+            continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, true));
         }
     }
 

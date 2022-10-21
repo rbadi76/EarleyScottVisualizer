@@ -1,4 +1,4 @@
-const CHAR_WIDTH = 6; // In pixels
+const CHAR_WIDTH = 7; // In pixels
 const NODE_MARGIN_LR = 20; // Left and right margins pixels.
 const NODE_MARGIN_TB = 10; // Top and bottom margins in pixels.
 const NODE_PADDING_LR = 10; // Left and right padding within the node

@@ -136,8 +136,8 @@ class SPPFnode {
 
         let nelBBox = newEllipseLabel.getBoundingClientRect();
 
-        newEllipseLabel.setAttribute("x", x + NODE_PADDING_LR);
-        newEllipseLabel.setAttribute("y", y + NODE_PADDING_TB + ((this.height - nelBBox.height) / 2 + 5));
+        newEllipseLabel.setAttribute("x", x + ((this.width - nelBBox.width) / 2));
+        newEllipseLabel.setAttribute("y", y + NODE_PADDING_TB + ((this.height - nelBBox.height) / 2) + 5);
     }
 
     getSanitizedHtmlId() {
