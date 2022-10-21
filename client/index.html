@@ -32,20 +32,21 @@
                         <input type="checkbox" id="areWords" onchange="handleChange(this)" /> Words
                     </label>
                 </div>
-                <div class="form-group">
+                <div class="form-group mt-2">
                     <label for="alphabet">Alphabet</label>
                     <input type="text" class="form-control" id="alphabet" />
                 </div>
-                <div class="form-group">
+                <div class="form-group mt-2">
                     <label for="tokens">String to parse</label>
                     <input type="text" class="form-control" id="tokens" />
                 </div>
-                <div class="form-group">
+                <div class="form-group mt-2">
                     <label for="grammar">Grammar</label>
                     <textarea class="form-control" id="grammar"></textarea>
                 </div>
 
-                <button type="button" class="btn btn-primary" onclick="validatePrepareAndSend()">Parse</button>
+                <button type="button" class="btn btn-primary mt-2" onclick="validatePrepareAndSend(true)">Parse step-by-step</button>
+                <button type="button" class="btn btn-secondary mt-2" onclick="validatePrepareAndSend(false)">Parse in one go</button>
             </form>
 
             <div class="container" id="queuesAndSets" hidden>

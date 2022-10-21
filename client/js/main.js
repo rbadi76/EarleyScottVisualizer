@@ -56,7 +56,7 @@ function testConnection()
         });
 }
 
-function validatePrepareAndSend()
+function validatePrepareAndSend(stepByStep)
 {
     const alphabetStr = document.getElementById("alphabet").value;
     const tokenStr = document.getElementById("tokens").value;
@@ -79,7 +79,7 @@ function validatePrepareAndSend()
         errorpanel.setAttribute("hidden", "true");
         reqObj = new RequestObject(alphabetStr, tokenStr, grammarText, areWords);
         
-        sendParseRequest(reqObj);
+        sendParseRequest(reqObj, stepByStep);
         
         let queuesAndSets = document.getElementById("queuesAndSets");
         queuesAndSets.removeAttribute("hidden");
@@ -87,10 +87,20 @@ function validatePrepareAndSend()
         let mainform = document.getElementById("mainform");
         mainform.setAttribute("hidden", "true");
 
-        let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
-        continueOrStartButton.textContent = "Continue";
-        continueOrStartButton.disabled = true;
-        readyToParse = false;
+        if(stepByStep)
+        {
+            let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
+            continueOrStartButton.textContent = "Continue";
+            continueOrStartButton.disabled = true;
+            readyToParse = false;
+        }
+        else
+        {
+            let continueOrStartButton = document.getElementById("btnContinueOrStartAgain");
+            continueOrStartButton.textContent = "Start again";
+            continueOrStartButton.disabled = false;
+            readyToParse = true;
+        }
 
         let earleySetsRow = document.getElementById("earleySets");
 
@@ -140,13 +150,18 @@ function validatePrepareAndSend()
     }
 
 }
+
 let parsingDone = false;
 
-function sendParseRequest(reqObj)
+function sendParseRequest(reqObj, stepByStep)
 {
     let jsonObj = JSON.stringify(reqObj);
+
+    let restMethod = "/api/v1/parseToEnd";
+    if(stepByStep) restMethod = "/api/v1/createParser";
+
     //Perform an AJAX POST request to the url
-    axios.post(window.esvServiceUrl + '/api/v1/createParser', {
+    axios.post(window.esvServiceUrl + restMethod, {
         "alphabet": reqObj.alphabet,
         "tokenString": reqObj.tokenString,
         "grammar": reqObj.grammar
@@ -214,10 +229,23 @@ function sendParseRequest(reqObj)
             grammarCol.appendChild(pProduction);
         });
 
-        let abortButton = document.getElementById("btnAbort")
-        abortButton.disabled = false;  
-        SPPFnodes = new Map();
-        getStatusTimeout = setTimeout(() => getStatus(0, TIMEOUT), TIMEOUT);     
+        if(stepByStep)
+        {
+            let abortButton = document.getElementById("btnAbort")
+            abortButton.disabled = false;  
+            SPPFnodes = new Map();
+            getStatusTimeout = setTimeout(() => getStatus(0, TIMEOUT), TIMEOUT);  
+        }  
+        else
+        {
+            populateEarleySets(response.data[0].E);
+            populateOtherSets('Qset', response.data[0].Q);
+            populateOtherSets('QmarkedSet', response.data[0].Qmarked);
+            populateOtherSets('Rset', response.data[0].R);
+            populateOtherSets('Vset', response.data[0].V);
+            populateOtherSets('Hset', response.data[0].H);
+            addToSPPFnodes(response.data[0].V_withNodes);
+        } 
     })
     .catch(function (error) {
 
