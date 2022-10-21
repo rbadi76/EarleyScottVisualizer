@@ -59,9 +59,9 @@ app.post('/api/v1/parseToEnd', (req, res) => {
         console.log(`Got alphabet ${req.body.alphabet}, tokenstring  ${req.body.tokenString} and grammar ${req.body.grammar}`);
 
         let earleyScott = new EarleyScott(tokenString, alphabet, grammar);
-        earleyScott.parse();
+        let result = earleyScott.parse();
         respArray.push(
-            {   result: 'Parsing done', 
+            {   result: result.toString(), 
                 step: 1,
                 Q: parseStatus.parseStatus.getQ(),
                 R: parseStatus.parseStatus.getR(),
@@ -73,6 +73,9 @@ app.post('/api/v1/parseToEnd', (req, res) => {
                 V_withNodes: parseStatus.parseStatus.getVWithFamilies(),
                 description: parseStatus.parseStatus.getDescription()
         });
+
+        parseStatus.parseStatus.abort();
+        parseStatus.parseStatus.setParsingDone();
         return res.status(201).json(respArray);    
     }
     catch(error)
@@ -159,8 +162,6 @@ app.get('/api/v1/getStatus/:step', (req, res) => {
         return res.status(500).json(respArray);
     }
 });
-
-// TODO: write cancel function in case of error to be called by cach functions in client.
 
    
 app.listen(port, () => {
