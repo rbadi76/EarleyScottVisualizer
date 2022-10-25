@@ -532,6 +532,15 @@ class RequestObject
             this.tokenString = tokenStr.split("");
         }
         let lines = grammarText.split("\n");
+        // Remove empty items to prevent null ref error - this happens if user hits enter after adding the last production of the CFG 
+        // once or more times, or even between items 
+        for(let i = lines.length - 1; i > 0; i--) 
+        {
+            if(lines[i] == '')
+            {
+                lines.splice(i, 1);
+            }
+        }
         this.grammar = [];
         lines.forEach(line => {
             let production = line.split("=>");
