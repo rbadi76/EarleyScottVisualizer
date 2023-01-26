@@ -418,23 +418,41 @@ class EarleyScott
         // Checking if delta starts with a non-terminal according to original by Scott.
         let whichBranch = [];
         whichBranch.push("Earley set " + i + ". PREDICTOR: if Λ=(B ::= α · Cβ,h,w), where C = " + production.lhs + " in " + originalElement.toString() + ".");
-        if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.cursorIsAtEnd())
-            && !this._E[i].some(item => item.productionOrNT.isEqual(newProductionWithDotAtBeginning)))
+
+        let cursorIsInFrontOfNonTerminal = newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals);
+        let cursorIsAtEnd = newProductionWithDotAtBeginning.cursorIsAtEnd();
+        let deltaIsInSigmaN = cursorIsInFrontOfNonTerminal || cursorIsAtEnd; // Cursor can only be at end if this is an epsilon production
+        let earleyItemAlreadyInEi = this._E[i].some(item => item.productionOrNT.isEqual(newProductionWithDotAtBeginning));
+        if(deltaIsInSigmaN && !earleyItemAlreadyInEi)
         {
             this._E[i].push(newEarleyScottItem);
             this._R.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
             whichBranch.push(" E[" + i + "] and R");
         }
         // Note the difference from original paper here as the array is 0-based but the string is 1-based in paper.
-        if(this._tokens[i] == production.rhs[0] && !this._Q.some(item => item.isEqual(newEarleyScottItem))) 
+        let firstSymbolOfRhsEqualsToken = this._tokens[i] == production.rhs[0];
+        let earleyItemAlreadyInQ = this._Q.some(item => item.isEqual(newEarleyScottItem));
+        if(firstSymbolOfRhsEqualsToken && !earleyItemAlreadyInQ) 
         {
             if(whichBranch.length > 1) whichBranch.push(", ")
             this._Q.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
             whichBranch.push("Q");
         }
+
+
         if(whichBranch.length > 1) whichBranch.splice(1, 0, "Added element " + newEarleyScottItem.toString() + " to");
         if(whichBranch.length > 1) whichBranch.push(".")
+        let criterias = [];
+        criterias.push("Criterias:\n")
+        if(cursorIsInFrontOfNonTerminal) criterias.push("Delta in Sigma N (cursor in front of non-terminal) == " + cursorIsInFrontOfNonTerminal.toString() + ".\n");
+        else if(cursorIsAtEnd) criterias.push("Delta in Sigma N (cursor at end / only epsilon in rhs) == " + cursorIsAtEnd.toString() + "\n");
+        else criterias.push("Delta not in Sigma N.")
+        criterias.push("Earley item already in E" + i + " == " + earleyItemAlreadyInEi.toString() + ".\n");
+        criterias.push("First symbol or right hand side equals token " + this._tokens[i] + " == " + firstSymbolOfRhsEqualsToken.toString() + ".\n");
+        criterias.push("Earley item already in Q == " + earleyItemAlreadyInQ.toString() + ".\n");
+
         if(whichBranch.length == 1) whichBranch.push("Neither if-clause criteria's met. Nothing added to any queues.")
+        whichBranch.push(criterias.join(" "));
         updateParseStatus(parseStatus, this, whichBranch.join(" "));
         parseStatus.parseStatus.incrementLastStepShown();
         if(productionsStartingWithTheNonTerminal.length)
@@ -490,24 +508,26 @@ class EarleyScott
         console.log(fgWhite + "%s" + reset, "Started parseAsync6_CursorIsAtEnd_if1.");
         if(element.w == null)
         {
+            let whichBranch = [];
+            whichBranch.push("COMPLETER, Earley set " + i + ". if Λ=(D ::= α·,h,w) which is "+ element.toString() + ", sub-branch if w = null.")
             let D_node = new Node(element.productionOrNT.lhs, i, i, this._terminals, this._nonTerminals);
             
             let v;
             let arr = this._V.filter(item => item.isEqual(D_node));
-            let whichBranch = "";
             if(arr.length === 0)
             {
                 v = D_node;
                 this._V.push(v);
-                whichBranch = "No node " + D_node.toString() + " found. Created it and added to queue V.";
+                whichBranch.push("No node v=" + D_node.toString() + " found. Created it and added to queue V.");
             }
             else
             {
                 v = arr[0];
-                whichBranch = "Node " + D_node.toString() + " found."
+                whichBranch.push("Node v=" + D_node.toString() + " found in queue V.");
             }
             element.w = v;
-            updateParseStatus(parseStatus, this, "COMPLETER, Earley set " + i + ". if Λ=(D ::= α·,h,w), sub-branch if w = null. " + whichBranch + " w set to v.");
+            whichBranch.push("w set to v.")
+            updateParseStatus(parseStatus, this, whichBranch.join(" "));
             parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_innerIf(i, element));
             
@@ -527,7 +547,7 @@ class EarleyScott
         {
             element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
 
-            updateParseStatus(parseStatus, this, "In COMPLETER, Earley set "+ i + ". w did not have a family of epsilon. Epsilon added as a child.");
+            updateParseStatus(parseStatus, this, "In COMPLETER, Earley set "+ i + ". w = " + element.w.toString() + " in " + element.toString() + " did not have a family of epsilon. Epsilon added as a child.");
             parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_if2(i, element));
         }
