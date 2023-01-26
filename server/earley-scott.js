@@ -417,21 +417,23 @@ class EarleyScott
         // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
         // Checking if delta starts with a non-terminal according to original by Scott.
         let whichBranch = [];
-        whichBranch.push("In if Λ=(B ::= α · Cβ,h,w), where C = " + production.lhs + ".");
+        whichBranch.push("Earley set " + i + ". PREDICTOR: if Λ=(B ::= α · Cβ,h,w), where C = " + production.lhs + ".");
         if((newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newProductionWithDotAtBeginning.cursorIsAtEnd())
             && !this._E[i].some(item => item.productionOrNT.isEqual(newProductionWithDotAtBeginning)))
         {
             this._E[i].push(newEarleyScottItem);
             this._R.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
-            whichBranch.push("E[" + i + "] and R, ");
+            whichBranch.push(" E[" + i + "] and R");
         }
         // Note the difference from original paper here as the array is 0-based but the string is 1-based in paper.
         if(this._tokens[i] == production.rhs[0] && !this._Q.some(item => item.isEqual(newEarleyScottItem))) 
         {
+            if(whichBranch.length > 1) whichBranch.push(", ")
             this._Q.push(this.cloneEarleyScottItem(newEarleyScottItem)); // Make sure to clone item.
             whichBranch.push("Q");
         }
         if(whichBranch.length > 1) whichBranch.splice(1, 0, "Added element " + newEarleyScottItem.toString() + " to");
+        if(whichBranch.length > 1) whichBranch.push(".")
         updateParseStatus(parseStatus, this, whichBranch.join(" "));
         parseStatus.parseStatus.incrementLastStepShown();
         if(productionsStartingWithTheNonTerminal.length)
@@ -504,7 +506,7 @@ class EarleyScott
                 whichBranch = "Node " + D_node.toString() + " found."
             }
             element.w = v;
-            updateParseStatus(parseStatus, this, "In if Λ=(D ::= α·,h,w), sub-branch if w = null. " + whichBranch + " w set to v.");
+            updateParseStatus(parseStatus, this, "COMPLETER, Earley set " + i + ". if Λ=(D ::= α·,h,w), sub-branch if w = null. " + whichBranch + " w set to v.");
             parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_innerIf(i, element));
             
@@ -524,7 +526,7 @@ class EarleyScott
         {
             element.w.addFamilyOfChildren(unaryFamilyWithEpsilonNode);
 
-            updateParseStatus(parseStatus, this, "w did not have a family of epsilon. Epsilon added as a child.");
+            updateParseStatus(parseStatus, this, "In COMPLETER, Earley set "+ i + ". w did not have a family of epsilon. Epsilon added as a child.");
             parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync6_CursorIsAtEnd_if2(i, element));
         }
@@ -541,13 +543,13 @@ class EarleyScott
         {
             let h_item = new H_Item(element.productionOrNT.lhs, element.w);
             this._H.push(h_item);
-            updateParseStatus(parseStatus, this, "h equals i, so we added " + h_item.toString() + " to queue H.");
+            updateParseStatus(parseStatus, this, "In COMPLETER, Earley set "+ i + ". h equals i, so we added " + h_item.toString() + " to queue H.");
             parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, false));
         }
         else
         {
-            updateParseStatus(parseStatus, this, "h is not equal to i.");
+            updateParseStatus(parseStatus, this, "In COMPLETER, Earley set "+ i + ". h is not equal to i.");
             parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync7_CursorIsAtEndForLoop(i, element, false));
         }
@@ -578,7 +580,7 @@ class EarleyScott
     {
         console.log(fgWhite + "%s" + reset, "Started parseAsync7_CursorIsAtEndForLoopItemsInE.");
         let whichBranch = [];
-        whichBranch.push("In for all (A ::= τ · Dδ,k,z) in E_h. Looking at item " + item.toString() + " where D should equal " + element.productionOrNT.lhs);
+        whichBranch.push("In COMPLETER's for-loop, Earley set "+ i + ", for all (A ::= τ · Dδ,k,z) in E_h, where h == " + item.i + ". Looking at item " + item.toString() + " where D should equal " + element.productionOrNT.lhs + ". ");
         if(item.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) 
             && item.productionOrNT.nonTerminalAfterCursor(this._nonTerminals) == element.productionOrNT.lhs)
         {
@@ -593,7 +595,7 @@ class EarleyScott
 
             let newNodeWith_y_asAChild = new EarleyScottItem(new Production(newEarleyScottItem.productionOrNT.lhs, newEarleyScottItem.productionOrNT.rhs.join(" ")), newEarleyScottItem.i, y);
 
-            whichBranch.push("Item on correct format. Have called MAKE_NODE.");
+            whichBranch.push("Item on correct format. Have called MAKE_NODE which returned y = " + y.toString());
             // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
             if((newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
                 && !this._E[i].some(innerItem => innerItem.productionOrNT.isEqual(newEarleyScottItem.productionOrNT) 
@@ -654,7 +656,7 @@ class EarleyScott
         let element = this._Q.pop();
         element.productionOrNT.moveCursorForwardByOne();
         let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
-        whichBranch.push("Popped element " + element.toString() + " from Q. Moved cursor forward and made a node.");
+        whichBranch.push("SCANNER - Earley set " + i + ". Popped element " + element.toString() + " from Q. Moved cursor forward and made a node y = " + y.toString() + ".");
         let newEarleyScottItem = new EarleyScottItem(new Production(element.productionOrNT.lhs, element.productionOrNT.rhs.join(" ")), element.i, y);
         // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
         if(newEarleyScottItem.productionOrNT.cursorIsInFrontOfNonTerminal(this._nonTerminals) || newEarleyScottItem.productionOrNT.cursorIsAtEnd())
