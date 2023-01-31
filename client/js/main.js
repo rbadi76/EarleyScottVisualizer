@@ -242,7 +242,6 @@ function sendParseRequest(reqObj, stepByStep, areWords)
             let pDescription = document.createElement("p");
             let textDescription = document.createTextNode("Initializing");
             pDescription.append(textDescription);
-            pDescription.classList.add("text-center");
             pDescription.setAttribute("id", "codeDescription");
 
             // Append elements
@@ -269,7 +268,6 @@ function sendParseRequest(reqObj, stepByStep, areWords)
             let pDescription = document.createElement("p");
             let textDescription = document.createTextNode(response.data[0].result);
             pDescription.append(textDescription);
-            pDescription.classList.add("text-center");
             pDescription.setAttribute("id", "codeDescription");
 
             // Append elements
@@ -325,7 +323,7 @@ function getStatus(step, ms)
                 if(pStep) pStep.textContent = "Step " + step;
                 currentStep = step;
 
-                if(pDescription) pDescription.textContent = response.data[0].description;
+                if(pDescription) pDescription.innerHTML = response.data[0].description;
 
                 populateEarleySets(response.data[0].E);
                 populateOtherSets('Qset', response.data[0].Q);

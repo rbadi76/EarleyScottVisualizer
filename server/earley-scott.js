@@ -417,7 +417,7 @@ class EarleyScott
         // production.cursorIsInFrontOfNonTerminal or cursorIsAtEnd() fulfills the criteria of delta being in ΣN.
         // Checking if delta starts with a non-terminal according to original by Scott.
         let whichBranch = [];
-        whichBranch.push("Earley set " + i + ". PREDICTOR: if Λ=(B ::= α · Cβ,h,w), where C = " + production.lhs + " in " + originalElement.toString() + ".");
+        whichBranch.push("Earley set " + i + ". PREDICTOR: if Λ=(B ::= α · Cβ,h,w). Looking at item " + originalElement.toString() + " where C = " + production.lhs + ".");
 
         let cursorIsInFrontOfNonTerminal = newProductionWithDotAtBeginning.cursorIsInFrontOfNonTerminal(this._nonTerminals);
         let cursorIsAtEnd = newProductionWithDotAtBeginning.cursorIsAtEnd();
@@ -440,18 +440,18 @@ class EarleyScott
         }
 
 
-        if(whichBranch.length > 1) whichBranch.splice(1, 0, "Added element " + newEarleyScottItem.toString() + " to");
+        if(whichBranch.length > 1) whichBranch.splice(1, 0, "Found complying production in grammar and created item " + newEarleyScottItem.toString() + " and added it to");
         if(whichBranch.length > 1) whichBranch.push(".")
         let criterias = [];
-        criterias.push("Criterias:\n")
-        if(cursorIsInFrontOfNonTerminal) criterias.push("Delta in Sigma N (cursor in front of non-terminal) == " + cursorIsInFrontOfNonTerminal.toString() + ".\n");
-        else if(cursorIsAtEnd) criterias.push("Delta in Sigma N (cursor at end / only epsilon in rhs) == " + cursorIsAtEnd.toString() + "\n");
-        else criterias.push("Delta not in Sigma N.")
-        criterias.push("Earley item already in E" + i + " == " + earleyItemAlreadyInEi.toString() + ".\n");
-        criterias.push("First symbol or right hand side equals token " + this._tokens[i] + " == " + firstSymbolOfRhsEqualsToken.toString() + ".\n");
-        criterias.push("Earley item already in Q == " + earleyItemAlreadyInQ.toString() + ".\n");
+        criterias.push("</p><strong>Criterias:</strong><ul>")
+        if(cursorIsInFrontOfNonTerminal) criterias.push("<li>δ ("+ production.rhs.join(" ") + ") in Σ<sub>N</sub> (cursor in front of non-terminal) == " + cursorIsInFrontOfNonTerminal.toString() + ".</li>");
+        else if(cursorIsAtEnd) criterias.push("<li>δ ("+ production.rhs.join(" ") + ") in Σ<sub>N</sub> (cursor at end / only epsilon in rhs) == " + cursorIsAtEnd.toString() + "</li>");
+        else criterias.push("<li>δ ("+ production.rhs.join(" ") + ") not in Σ<sub>N</sub>.</li>")
+        criterias.push("<li>Earley item already in E" + i + " == " + earleyItemAlreadyInEi.toString() + ".</li>");
+        criterias.push("<li>First symbol or right hand side equals token " + this._tokens[i] + " == " + firstSymbolOfRhsEqualsToken.toString() + ".</li>");
+        criterias.push("<li>Earley item already in Q == " + earleyItemAlreadyInQ.toString() + ".</li></ul>");
 
-        if(whichBranch.length == 1) whichBranch.push("Neither if-clause criteria's met. Nothing added to any queues.")
+        if(whichBranch.length == 1) whichBranch.push("<p>Neither criteria met in grammar. Nothing added to any queues.</p>")
         whichBranch.push(criterias.join(" "));
         updateParseStatus(parseStatus, this, whichBranch.join(" "));
         parseStatus.parseStatus.incrementLastStepShown();
@@ -676,7 +676,7 @@ class EarleyScott
         console.log(fgWhite + "%s" + reset, "Started parseAsync8_WhileLoop.");
         let whichBranch = [];
         let element = this._Q.pop();
-         whichBranch.push("SCANNER - Earley set " + i + ". Popped element " + element.toString() + " from Q.")
+        whichBranch.push("SCANNER - Earley set " + i + ". Popped element " + element.toString() + " from Q.")
         element.productionOrNT.moveCursorForwardByOne();
         let y = this.make_node(element.productionOrNT, element.i, i + 1, element.w, v, this._V);
         whichBranch.push("Moved cursor forward and made a node y = " + y.toString() + ".");
