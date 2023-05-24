@@ -102,55 +102,40 @@ class TreeArea {
                 let nodeTopLeftPoint = new DOMPoint(nodeBBox.x - svgTopLeftPoint.x, nodeBBox.y - svgTopLeftPoint.y);  // Top left point of node within SVG image
                 let nodeMiddlePoint = new DOMPoint(nodeTopLeftPoint.x + nodeBBox.width / 2, nodeTopLeftPoint.y + nodeBBox.height / 2);          
                 let nodeAreaStartX = nodeTopLeftPoint.x - NODE_MARGIN_LR;
-                if(node.familiesCount > 1)
-                {    
-                    let nodeAreaSegmentSizeX = (nodeBBox.width + (NODE_MARGIN_LR * 2)) / (node.familiesCount * 2) - PACKED_NODE_R;
-                    let packedNodeX = nodeAreaStartX + nodeAreaSegmentSizeX;
-                    let packedNodeY = nodeTopLeftPoint.y + nodeBBox.height + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB - PACKED_NODE_R;
-                    let counter = 1;
-                    for(let [key, value] of node.families)
-                    {
-                        let idForPackedNode = this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_pn" + counter;
-                        this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, idForPackedNode);
-                        
-                        // Draw line from node to packed node
-                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_line2PNode_" + counter, 
-                            idForPackedNode, "toPackedNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId())), false;
-
-                        // Check if the next line goes back to the parent
-                        let useCurve = false;
-                        if(node.isEqual(value.node)) useCurve = true;
-
-                        // Draw line from packed node to child/children
-                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, 
-                            this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA_" + counter, 
-                            this.prefixTreeAreaIdToNodeId(value.node.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode, useCurve);
-                        if(value instanceof BinaryFamily)
-                        {
-                            useCurve = false;
-                            if(node.isEqual(value.node2)) useCurve = true;
-                            this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, 
-                                this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB_" + counter, 
-                                this.prefixTreeAreaIdToNodeId(value.node2.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode, useCurve); 
-                        }
-                        
-                        // Update for next iteration
-                        packedNodeX += nodeAreaSegmentSizeX * 2 + 2 * PACKED_NODE_R;
-                        counter++;
-                    }
-                }
-                else if (node.familiesCount == 1)
+  
+                let nodeAreaSegmentSizeX = (nodeBBox.width + (NODE_MARGIN_LR * 2)) / (node.familiesCount * 2) - PACKED_NODE_R;
+                let packedNodeX = nodeAreaStartX + nodeAreaSegmentSizeX;
+                let packedNodeY = nodeTopLeftPoint.y + nodeBBox.height + NODE_MARGIN_TB + NODE_ROW_MARGIN_TB - PACKED_NODE_R;
+                let counter = 1;
+                for(let [key, value] of node.families)
                 {
-                    let iterator = node.families.values();
-                    let family = iterator.next().value;
-                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA", 
-                        this.prefixTreeAreaIdToNodeId(family.node.getSanitizedHtmlId()), "toNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()), false);
-                    if(family instanceof BinaryFamily)
+                    let idForPackedNode = this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_pn" + counter;
+                    this.renderPackedNode(packedNodeX, packedNodeY, PACKED_NODE_R, idForPackedNode);
+                    
+                    // Draw line from node to packed node
+                    this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_line2PNode_" + counter, 
+                        idForPackedNode, "toPackedNode", this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId())), false;
+
+                    // Check if the next line goes back to the parent
+                    let useCurve = false;
+                    if(node.isEqual(value.node)) useCurve = true;
+
+                    // Draw line from packed node to child/children
+                    this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, 
+                        this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineA_" + counter, 
+                        this.prefixTreeAreaIdToNodeId(value.node.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode, useCurve);
+                    if(value instanceof BinaryFamily)
                     {
-                        this.renderPath(nodeMiddlePoint.x, nodeMiddlePoint.y, this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB", 
-                            this.prefixTreeAreaIdToNodeId(family.node2.getSanitizedHtmlId()), "toNode", 
-                            this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()), false);
-                    }          
+                        useCurve = false;
+                        if(node.isEqual(value.node2)) useCurve = true;
+                        this.renderPath(packedNodeX + PACKED_NODE_R, packedNodeY + PACKED_NODE_R, 
+                            this.prefixTreeAreaIdToNodeId(node.getSanitizedHtmlId()) + "_lineB_" + counter, 
+                            this.prefixTreeAreaIdToNodeId(value.node2.getSanitizedHtmlId()), "fromPackedNode", idForPackedNode, useCurve); 
+                    }
+                    
+                    // Update for next iteration
+                    packedNodeX += nodeAreaSegmentSizeX * 2 + 2 * PACKED_NODE_R;
+                    counter++;
                 }
             } 
             rowIdx++;
