@@ -701,6 +701,9 @@ class EarleyScott
         }
         else
         {
+            whichBranch.push("<br />SCANNER and iteration " + i + " done. Starting next iteration.");
+            updateParseStatus(parseStatus, this, whichBranch.join(" "));
+            parseStatus.parseStatus.incrementLastStepShown();
             continueIfAllowed(() => this.parseAsync2_mainForLoop(i + 1));
         }
     }
